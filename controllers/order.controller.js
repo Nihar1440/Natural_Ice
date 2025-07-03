@@ -17,7 +17,7 @@ export const createOrder = async (req, res) => {
   }
 };
 
-export const getOrder = async (req, res) => {
+export const getOrderById = async (req, res) => {
   try {
     const { id } = req.params;
     const order = await Order.findById(id);
@@ -29,6 +29,15 @@ export const getOrder = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getOrder =async(req, res) => {
+  try {
+    const orders = await Order.find();
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
 
 export const updateOrder = async (req, res) => {
   try {
@@ -55,6 +64,7 @@ export const deleteOrder = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 export const returnOrder = async (req, res) => {
   try {
     const { id } = req.params;
