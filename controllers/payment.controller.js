@@ -2,15 +2,14 @@ import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import { Order } from '../models/order.model.js';
 dotenv.config();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // from .env
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 
 export const createCheckoutSession = async (req, res) => {
-  const { items } = req.body; // [{ name, price, quantity }]
+  const { items } = req.body; 
 
   try {
     const session = await stripe.checkout.sessions.create({
-      // Add more payment methods as needed
       mode: 'payment',
 
       line_items: items.map((item) => ({
@@ -20,7 +19,7 @@ export const createCheckoutSession = async (req, res) => {
           product_data: {
             name: item.name,
             description: 'Optional description',
-            images: [item.image], // ✅ must be a public URL
+            images: [item.image],
             metadata: {
               category: item.category.name,
               productId: item.productId,
@@ -31,9 +30,9 @@ export const createCheckoutSession = async (req, res) => {
         quantity: item.quantity
       })),
 
-      success_url: `https://ecommerce-frontend-three-ruby.vercel.app/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       // Cancel page
-      cancel_url: 'https://ecommerce-frontend-three-ruby.vercel.app/cancel'
+      cancel_url: `${process.env.FRONTEND_URL}/cancel`
     });
 
     res.json({ url: session.url }); // Send session URL to frontend

@@ -11,10 +11,10 @@ const categorySchema = new Schema({
         required:true,
         lowercase:true,
     },
-    // status:{
-    //     type:String,
-    //     enum:['Active','Inactive'],
-    // },
+    status:{
+        type:String,
+        enum:['Active','Inactive'],
+    },
 },
 {timestamps:true}
 )

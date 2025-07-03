@@ -1,6 +1,9 @@
 import {User} from '../models/user.model.js'
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { createTransport } from 'nodemailer';
+
 //create user
 export const register = async (req,res) =>{
     try {
@@ -128,4 +131,73 @@ export const logoutUser = (req, res) => {
     sameSite: 'strict', // make sure this matches how you set it
   });
   res.status(200).json({ message: 'Logged out successfully' });
+};
+
+// Forgot Password
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).send("User not found");
+
+  const token = crypto.randomBytes(20).toString("hex");
+
+  user.resetPasswordToken = token;
+  user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+  await user.save();
+
+  const resetURL = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+
+  const transporter = createTransport({
+    service: "Gmail",
+    auth: {
+      user: process.env.MAIL,
+      pass: process.env.APP_PASS,
+    },
+  });
+
+  const mailOptions = {
+    to: user.email,
+    subject: "Password Reset",
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="color: #0056b3; text-align: center;">Password Reset Request</h2>
+        <p>Dear ${user.name},</p>
+        <p>You have requested to reset your password. Please click on the button below to reset it:</p>
+        <p style="text-align: center;">
+          <a href="${resetURL}" style="display: inline-block; padding: 10px 20px; margin-top: 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
+        </p>
+        <p style="font-size: 0.9em; color: #666; margin-top: 20px;">This link will expire in 1 hour.</p>
+        <p style="font-size: 0.9em; color: #666;">If you did not request a password reset, please ignore this email.</p>
+        <p style="margin-top: 30px;">Regards,</p>
+        <p>Your Application Team</p>
+      </div>
+    `,
+  };
+
+  transporter.sendMail(mailOptions, (err) => {
+    if (err) return res.status(500).send("Email not sent");
+    res.send("Password reset email sent");
+  });
+};
+
+// Reset Password
+export const resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: Date.now() },
+  });
+
+  if (!user) return res.status(400).send("Token is invalid or expired");
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  user.password = hashedPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();
+
+  res.send("Password has been reset");
+
 };

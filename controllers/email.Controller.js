@@ -7,14 +7,14 @@ export async function sendEmail(req, res) {
   const transporter = createTransport({
     service: 'gmail',
     auth: {
-      user: 'roheravishal567@gmail.com',
-      pass: 'xtxs uyxf jgfv odfk',    
+      user: process.env.MAIL,
+      pass: process.env.APP_PASS,    
     },
   });
 
   const mailOptions = {
     from: email,
-    to: 'roheravishal567@gmail.com',
+    to: process.env.MAIL,
     subject: `✨ New Contact: ${subject}`,
     html: `
       <!DOCTYPE html>

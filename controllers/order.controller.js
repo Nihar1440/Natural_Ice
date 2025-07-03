@@ -55,5 +55,26 @@ export const deleteOrder = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+export const returnOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findById(id);
 
-// Add other order-related functions here (e.g., getOrder, updateOrder, deleteOrder) 
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    const orderPlacedTime = new Date(order.createdAt);
+    const currentTime = new Date();
+    const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    if (currentTime.getTime() - orderPlacedTime.getTime() <= twentyFourHours) {
+      
+      res.status(200).json({ message: 'Return request placed successfully. Refund process initiated.' });
+    } else {
+      res.status(400).json({ message: 'Unable to place return request. The 24-hour return window has passed.' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

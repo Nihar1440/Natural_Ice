@@ -27,7 +27,9 @@ const userSchema = new Schema({
     },
     refreshtoken:{
         type:String
-    }
+    },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date
 },
 {timestamps:true}
 )
@@ -38,6 +40,15 @@ userSchema.pre('save',async function encryptpassword(next){
     this.password = await bcrypt.hash(this.password,10)
 
 })
- 
+
+userSchema.methods.getResetPasswordToken = function() {
+    const resetToken = bcrypt.randomBytes(20).toString('hex');
+
+    this.resetPasswordToken = bcrypt.createHash('sha256').update(resetToken).digest('hex');
+
+    this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+    return resetToken;
+};
 
 export const User = mongoose.model("User",userSchema)
