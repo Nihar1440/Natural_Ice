@@ -192,12 +192,37 @@ export const resetPassword = async (req, res) => {
 
   if (!user) return res.status(400).send("Token is invalid or expired");
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  user.password = hashedPassword;
+  user.password = password;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
   await user.save();
 
   res.send("Password has been reset");
-
 };
+
+export const refreshToken = async (req, res) => {
+  const token = req.cookies.refreshToken;
+
+  if (!token) {
+    return res.status(401).json({ message: "No refresh token" });
+  }
+
+  try {
+    // Verify refresh token
+    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+
+    // Create a new short-lived access token
+    const newAccessToken = jwt.sign(
+      { id: decoded.id, role: decoded.role }, // include role if needed
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.ACCESS_EXPIRES_IN || '30s' }
+    );
+
+    // Return only access token; refresh token stays in cookie
+    res.json({ accessToken: newAccessToken });
+
+  } catch (err) {
+    console.error('Refresh error:', err.message);
+    return res.status(403).json({ message: "Invalid refresh token" });
+  }
+}

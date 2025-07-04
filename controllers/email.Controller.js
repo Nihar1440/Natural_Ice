@@ -1,8 +1,7 @@
 import { createTransport } from 'nodemailer';
 
 export async function sendEmail(req, res) {
-  const { firstName, lastName, email, phone, subject, message } = req.body;
-  const fullName = `${firstName} ${lastName}`;
+  const { name, email, phone, subject, message } = req.body;
 
   const transporter = createTransport({
     service: 'gmail',
@@ -15,14 +14,14 @@ export async function sendEmail(req, res) {
   const mailOptions = {
     from: email,
     to: process.env.MAIL,
-    subject: `✨ New Contact: ${subject}`,
+    subject: `✨ Subject: ${subject}`,
     html: `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>New Contact Message</title>
+        <title>Message from ${name}</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
           
@@ -233,7 +232,7 @@ export async function sendEmail(req, res) {
         <div class="email-wrapper">
           <div class="header">
             <h1>💫 New Contact Message</h1>
-            <p>Someone reached out through your contact form</p>
+            <p>${name} reached out through your contact form</p>
           </div>
           
           <div class="content">
@@ -241,7 +240,7 @@ export async function sendEmail(req, res) {
               <div class="info-grid">
                 <div class="info-item">
                   <div class="info-label">👤 Full Name</div>
-                  <div class="info-value">${fullName}</div>
+                  <div class="info-value">${name}</div>
                 </div>
                 
                 <div class="info-item">
