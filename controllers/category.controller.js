@@ -3,7 +3,14 @@ import { Category } from '../models/category.model.js';
 // Get all categories
 export const getCategories = async (req, res) => {
   try {
-    const categories = await Category.find();
+    const { name } = req.query; // Extract 'name' from query parameters
+
+    const filter = {};
+    if (name) {
+      filter.name = { $regex: name, $options: 'i' }; // Add name to filter for case-insensitive partial match
+    }
+
+    const categories = await Category.find(filter); // Apply the filter to the query
     res.json(categories);
   } catch (error) {
     res.status(500).json({ message: error.message });

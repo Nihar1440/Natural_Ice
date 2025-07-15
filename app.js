@@ -9,33 +9,58 @@ import chatRoutes from "./routes/chat.route.js"
 import paymentRoutes from "./routes/payment.route.js"
 import receiptRoutes from "./routes/receipt.route.js"
 import orderRoutes from "./routes/order.route.js"
+import { Server } from "socket.io";
+import http from "http";
 
 import wishListRoutes from "./routes/wishList.route.js"
+import shippingAddressRoutes from "./routes/shippingAddressRoutes.js" // Import new routes
 
 import cors from "cors"
 import cookieParser from "cookie-parser";
 
 const app = express()
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"]
+    }
+})
+
+io.on("connection", (socket) => {
+    console.log('a user connected');
+
+    socket.on("disconnect", () => {
+        console.log(" user disconnected")
+    })
+    socket.on('joinOrderRoom', (orderId) => {
+        socket.join(orderId);
+        console.log(`User joined room for order: ${orderId}`)
+    })
+})
+
+app.set('socketio', io)
 
 app.use(cors({
-    origin:"http://localhost:5173",
+    origin: "http://localhost:5173",
     credentials: true
 }))
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(express.json()); // for parsing application/json
+app.use(express.json());
 // Route prefix
 app.use('/api/product', productRoutes);
 app.use('/api/category', categoryRoutes);
-app.use('/api/user',userRoutes)
-app.use('/api/productlist',productlistRoutes)
-app.use('/api/cart',cartRoutes)
+app.use('/api/user', userRoutes)
+app.use('/api/productlist', productlistRoutes)
+app.use('/api/cart', cartRoutes)
 app.use('/api/contact', emailRoutes);
-app.use('/api',chatRoutes)
-app.use('/api/wishlist',wishListRoutes)
-app.use('/api/payment',paymentRoutes)
-app.use('/api/receipt',receiptRoutes)
-app.use('/api/order',orderRoutes)
+app.use('/api', chatRoutes)
+app.use('/api/wishlist', wishListRoutes)
+app.use('/api/payment', paymentRoutes)
+app.use('/api/receipt', receiptRoutes)
+app.use('/api/order', orderRoutes)
+app.use('/api', shippingAddressRoutes) // CHANGED: Prefix to just '/api' as the router handles '/shipping-address'
 
-export {app}
+export { app }

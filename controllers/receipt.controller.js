@@ -37,7 +37,7 @@ export const downloadReceipt = async (req, res) => {
     doc.fillColor('white')
        .fontSize(28)
        .font('Helvetica-Bold')
-       .text('SHOPIFY STORE', 50, 30, { align: 'left' });
+       .text('NATURAL ICE', 50, 30, { align: 'left' });
     
     doc.fontSize(12)
        .font('Helvetica')
@@ -54,7 +54,6 @@ export const downloadReceipt = async (req, res) => {
     
     doc.restore();
 
-    // Move down after header
     doc.y = 140;
 
     // Order Information Card - Make it taller to accommodate content
@@ -71,7 +70,7 @@ export const downloadReceipt = async (req, res) => {
     const leftCol = 70;
     const rightCol = 320;
     const infoY = cardY + 45;
-    const maxWidth = 200; // Maximum width for text to prevent overflow
+    const maxWidth = 200;
 
     doc.fontSize(11)
        .font('Helvetica')
@@ -172,7 +171,6 @@ export const downloadReceipt = async (req, res) => {
     // Footer Section
     currentY += 100;
     
-    // Thank you message
     doc.fillColor(primaryColor)
        .fontSize(16)
        .font('Helvetica-Bold')
@@ -187,7 +185,7 @@ export const downloadReceipt = async (req, res) => {
        .text('For any queries, please contact our customer support.', 50, currentY, { align: 'center' })
        .text('This is a computer-generated receipt and does not require a signature.', 50, currentY + 15, { align: 'center' });
 
-    // QR Code placeholder (you can integrate a QR code library)
+    // QR Code placeholder
     currentY += 40;
     drawRoundedRect(doc.page.width/2 - 25, currentY, 50, 50, 5);
     doc.fillAndStroke('#f1f5f9', '#cbd5e1');

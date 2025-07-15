@@ -25,7 +25,7 @@ export const isAdmin = (req, res, next) => {
   const token = authHeader.split(" ")[1];
 try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // contains { id, role }
+    req.user = decoded; 
  if (req.user.role !== "admin")
     return res.status(403).json({ message: "Admin access only" });
     next();
@@ -42,7 +42,7 @@ try {
   const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // contains { id, role }
+    req.user = decoded;
     next();
   } catch (err) {
     res.status(401).json({ message: "Invalid token" });

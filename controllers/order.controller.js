@@ -42,10 +42,12 @@ export const getOrder =async(req, res) => {
 export const updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
+    const io = req.app.get('socketio');
     const updatedOrder = await Order.findByIdAndUpdate(id, req.body, { new: true });
     if (!updatedOrder) {
       return res.status(404).json({ message: 'Order not found' });
     }
+    io.to(id).emit('orderStatusUpdate', updatedOrder)
     res.status(200).json({ message: 'Order updated successfully', order: updatedOrder });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -76,7 +78,7 @@ export const returnOrder = async (req, res) => {
 
     const orderPlacedTime = new Date(order.createdAt);
     const currentTime = new Date();
-    const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    const twentyFourHours = 24 * 60 * 60 * 1000;
 
     if (currentTime.getTime() - orderPlacedTime.getTime() <= twentyFourHours) {
       

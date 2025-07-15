@@ -7,9 +7,9 @@ import {
   mergeWishListItems
 } from '../controllers/wishList.controller.js';
 const router = express.Router();
-router.post('/add', addItemToWishList);
+router.post('/addToWishlist', addItemToWishList);
 
-router.get('/list', getUserWishList);
+router.get('/wishlist', getUserWishList);
 
 router.delete('/remove/:id', removeItemFromWishList);
 

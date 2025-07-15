@@ -85,7 +85,7 @@ export const updateUser = async(req, res)=>{
  user.name = name ?? user.name;
     user.email = email ?? product.email;
     user.address = address ?? product.address;
-       const updatedProduct = await user.save(); // saves the changes to the same _id
+       const updatedProduct = await user.save();
     res.json(updatedProduct);
   } 
   
@@ -208,12 +208,10 @@ export const refreshToken = async (req, res) => {
   }
 
   try {
-    // Verify refresh token
     const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
 
-    // Create a new short-lived access token
     const newAccessToken = jwt.sign(
-      { id: decoded.id, role: decoded.role }, // include role if needed
+      { id: decoded.id, role: decoded.role },
       process.env.JWT_SECRET,
       { expiresIn: process.env.ACCESS_EXPIRES_IN || '30s' }
     );

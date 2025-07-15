@@ -28,7 +28,7 @@ export const addItemToCart = async (req, res) => {
 
     await cart.save();
 
-    // ✅ Populate full product data before sending response
+    // Populate full product data before sending response
     const populatedCart = await Cart.findById(cart._id).populate("items.productId");
 
     res.status(200).json(populatedCart);
@@ -46,11 +46,11 @@ export const getUserCart = async (req, res) => {
     return res.status(401).json({ message: "Not authorized" });
   }
 
-  const token = authHeader.split(" ")[1]; // ✅ Extract token after "Bearer"
+  const token = authHeader.split(" ")[1]; // Extract token after "Bearer"
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id; // ✅ Extract user ID from token
+    const userId = decoded.id; // Extract user ID from token
 
     const cart = await Cart.findOne({ userId, isActive: true }).populate("items.productId");
 
@@ -67,13 +67,13 @@ export const getUserCart = async (req, res) => {
 
 export const removeCartItem = async (req, res) => {
   try {
-    const { userId } = req.body; // or get from token
+    const { userId } = req.body;
     const itemId = req.params.id;
 
     const cart = await Cart.findOneAndUpdate(
       { userId },
       { $pull: { items: { productId: itemId } } },
-      { new: true } // returns updated document
+      { new: true }
     );
 
     if (!cart) {
@@ -86,6 +86,37 @@ export const removeCartItem = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const clearUserCart = async (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const cart = await Cart.findOne({ userId, isActive: true });
+
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    cart.items = [];
+    cart.totalPrice = 0;
+    await cart.save();
+
+    res.status(200).json({ message: "Cart cleared successfully" });
+  } catch (error) {
+    console.error("Clear cart error:", error);
+    res.status(500).json({ message: "Failed to clear cart" });
+  }
+};
+
 
 export const mergeProduct = async (req, res) => {
   const { products } = req.body;

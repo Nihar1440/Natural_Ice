@@ -3,7 +3,7 @@ import { Product } from '../models/product.model.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyCxH0_keaiWiQOdM61IOGNMCtKYjt_d87E');
 
 // -- Helper to fetch relevant products loosely based on query --
 const getRelevantProducts = async (query) => {
@@ -34,7 +34,6 @@ const getRelevantProducts = async (query) => {
   }
 };
 
-// -- Main chat controller --
 export const sendChat = async (req, res) => {
   const { message } = req.body;
 
@@ -46,7 +45,7 @@ export const sendChat = async (req, res) => {
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const products = await getRelevantProducts(message);
-    let systemPrompt = `You are a friendly assistant for an online clothing store. Use the product data below to answer user questions clearly and conversationally.`;
+    let systemPrompt = `You are a friendly assistant for an online Ice store which delivers varieties of ice. Use the product data below to answer user questions clearly and conversationally.`;
 
     if (products.length > 0) {
       const list = products.map(p => {

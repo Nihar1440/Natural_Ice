@@ -8,7 +8,6 @@ import {
   deleteProduct,
 } from '../controllers/product.controller.js';
 
-// ✅ Use upload from your custom Cloudinary setup
 import upload from '../middlewares/upload.js';
 
 const router = express.Router();
