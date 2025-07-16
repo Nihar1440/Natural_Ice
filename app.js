@@ -13,7 +13,7 @@ import { Server } from "socket.io";
 import http from "http";
 
 import wishListRoutes from "./routes/wishList.route.js"
-import shippingAddressRoutes from "./routes/shippingAddressRoutes.js" // Import new routes
+import shippingAddressRoutes from "./routes/shippingAddressRoutes.js"
 
 import cors from "cors"
 import cookieParser from "cookie-parser";
@@ -61,6 +61,6 @@ app.use('/api/wishlist', wishListRoutes)
 app.use('/api/payment', paymentRoutes)
 app.use('/api/receipt', receiptRoutes)
 app.use('/api/order', orderRoutes)
-app.use('/api', shippingAddressRoutes) // CHANGED: Prefix to just '/api' as the router handles '/shipping-address'
+app.use('/api', shippingAddressRoutes)
 
 export { app }

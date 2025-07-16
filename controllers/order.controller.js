@@ -30,9 +30,10 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-export const getOrder =async(req, res) => {
+export const getOrder = async (req, res) => {
   try {
-    const orders = await Order.find();
+    // Populate the 'user' field with user info (e.g., name, email)
+    const orders = await Order.find().populate('user', 'name email phoneNumber'); // add more fields if needed
     res.status(200).json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
