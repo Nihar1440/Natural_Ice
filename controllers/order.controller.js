@@ -56,7 +56,7 @@ export const getOrderById = async (req, res) => {
 export const getOrder = async (req, res) => {
   try {
     // Populate the 'user' field with user info (e.g., name, email)
-    const orders = await Order.find().populate('user', 'name email phoneNumber'); // add more fields if needed
+    const orders = await Order.find().populate('user', 'name email phoneNumber');
     res.status(200).json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -125,6 +125,27 @@ export const returnOrder = async (req, res) => {
     } else {
       res.status(400).json({ message: 'Unable to place return request. The 24-hour return window has passed.' });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const trackOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Return only tracking-related fields
+    res.status(200).json({
+      status: order.status,
+      currentLocation: order.currentLocation,
+      estimatedDeliveryDate: order.estimatedDeliveryDate,
+      trackingHistory: order.trackingHistory,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

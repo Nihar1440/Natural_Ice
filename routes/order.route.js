@@ -1,6 +1,6 @@
 import express from 'express';
-import { createOrder, getOrder, updateOrder, deleteOrder, returnOrder, getOrderById, getUserOrders } from '../controllers/order.Controller.js';
 import { protect } from '../middlewares/authmiddleware.js';
+import { createOrder, getOrder, updateOrder, deleteOrder, returnOrder, getOrderById, trackOrder, getUserOrders } from '../controllers/order.controller.js';
 
 const router = express.Router();
 
@@ -11,5 +11,6 @@ router.get('/orders/:id', getOrderById);
 router.put('/orders/:id', updateOrder);
 router.delete('/orders/:id', deleteOrder);
 router.post('/orders/:id/return', returnOrder);
+router.get('/orders/track/:orderId', trackOrder);
 
 export default router;

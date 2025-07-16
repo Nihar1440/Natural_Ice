@@ -48,6 +48,15 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "processing", "shipped", "delivered", "returned","cancelled"],
       default: "pending",
     },
+    currentLocation: { type: String },
+    estimatedDeliveryDate: { type: Date },
+    trackingHistory: [
+      {
+        status: String,
+        location: String,
+        timestamp: Date,
+      }
+    ],
   },
   { timestamps: true }
 );
