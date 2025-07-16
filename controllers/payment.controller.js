@@ -6,7 +6,15 @@ dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const createCheckoutSession = async (req, res) => {
-  const { items, shippingAddress } = req.body;
+  const {
+    userId,
+    guestId,
+    email,
+    items,
+    shippingAddress,
+    totalAmount,
+    isGuest = false
+  } = req.body;
 
   // --- ADD THIS LOG ---
   console.log(
@@ -22,6 +30,7 @@ export const createCheckoutSession = async (req, res) => {
       //   allowed_countries: ["US", "IN", "UAE"],
       // },
 
+      customer_email: email,
       line_items: items.map((item) => ({
         price_data: {
           currency: "AED",
@@ -40,6 +49,9 @@ export const createCheckoutSession = async (req, res) => {
         quantity: item.quantity,
       })),
       metadata: {
+        userId: userId || "",
+        guestId: guestId || "",
+        isGuest: isGuest.toString(),
         // Store the frontend-provided shipping address in metadata, now matching frontend's flat structure
         shipping_full_name: shippingAddress?.fullName || "", 
         shipping_phone_number: shippingAddress?.phoneNumber || "",
@@ -103,7 +115,9 @@ export const storeOrderAfterPayment = async (req, res) => {
     const order = new Order({
       orderId: uuidv4(), // <-- add this line
       sessionId: session.id,
-      user: userId,
+      user: session.metadata.userId || null,
+      guestId: session.metadata.guestId || null,
+      isGuest: session.metadata.isGuest === "true",
       email: session.customer_details.email,
       totalAmount: session.amount_total / 100,
       items: lineItems.data.map((item) => ({

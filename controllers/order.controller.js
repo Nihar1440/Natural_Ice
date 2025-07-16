@@ -2,18 +2,41 @@ import { Order } from "../models/order.model.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const { sessionId, email, items, totalAmount } = req.body;
-
-    const newOrder = await Order.create({
-      sessionId,
+    const {
+      userId,
+      guestId,
       email,
       items,
+      shippingAddress,
       totalAmount,
+      isGuest = false,
+    } = req.body;
+
+
+    if (!email || !items || items.length === 0 || !shippingAddress) {
+      return res.status(400).json({ message: "Missing required order fields" });
+    }
+
+    const order = await Order.create({
+      userId,
+      guestId: isGuest ? guestId : null,
+      isGuest,
+      email,
+      items,
+      shippingAddress,
+      totalAmount,
+      paymentStatus: "pending",
+      status: "pending",
     });
 
-    res.status(201).json({ message: 'Order created successfully', order: newOrder });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(201).json({
+      success: true,
+      message: "Order created successfully",
+      order,
+    });
+  } catch (err) {
+    console.error("Error creating order:", err);
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
 
@@ -34,6 +57,21 @@ export const getOrder = async (req, res) => {
   try {
     // Populate the 'user' field with user info (e.g., name, email)
     const orders = await Order.find().populate('user', 'name email phoneNumber'); // add more fields if needed
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+
+export const getUserOrders = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const orders = await Order.find({ user: userId });
+    
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found for this user' });
+    }
     res.status(200).json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
