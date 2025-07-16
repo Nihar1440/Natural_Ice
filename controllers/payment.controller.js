@@ -16,12 +16,6 @@ export const createCheckoutSession = async (req, res) => {
     isGuest = false
   } = req.body;
 
-  // --- ADD THIS LOG ---
-  console.log(
-    "Received shippingAddress in createCheckoutSession:",
-    shippingAddress
-  );
-  // --------------------
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -73,9 +67,18 @@ export const createCheckoutSession = async (req, res) => {
 };
 
 export const storeOrderAfterPayment = async (req, res) => {
-  const { sessionId, userId } = req.body;
+  const { sessionId } = req.body;
 
   try {
+
+    const existingOrder = await Order.findOne({ sessionId });
+    if (existingOrder) {
+      return res.status(200).json({
+        message: "Order already exists",
+        orderId: existingOrder.orderId,
+      });
+    }
+
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["line_items.data.price.product", "customer", "shipping"],
     });
@@ -136,10 +139,101 @@ export const storeOrderAfterPayment = async (req, res) => {
 
     res.status(201).json({
       message: "Order saved successfully",
-      orderId: order._id,
+      orderId: order.orderId,
       shippingAddress: order.shippingAddress,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+
+
+export const stripeWebhookHandler = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.error("Webhook signature verification failed.", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+ 
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+
+    try {
+      const existingOrder = await Order.findOne({ sessionId: session.id });
+      if (existingOrder) {
+        return res.status(200).send("Order already exists.");
+      }
+
+      // Expand line items and shipping 
+      const expandedSession = await stripe.checkout.sessions.retrieve(session.id, {
+        expand: ["line_items.data.price.product", "customer", "shipping"],
+      });
+
+      const lineItems = expandedSession.line_items;
+      const collectedShippingAddress = expandedSession.shipping;
+      const meta = expandedSession.metadata;
+
+      const frontendProvidedShippingAddress = {
+        fullName: meta.shipping_full_name,
+        phoneNumber: meta.shipping_phone_number,
+        addressLine: meta.shipping_address_line,
+        city: meta.shipping_city,
+        state: meta.shipping_state,
+        postalCode: meta.shipping_postal_code,
+        country: meta.shipping_country,
+      };
+
+      const addressToStore = {
+        fullName: collectedShippingAddress?.name || frontendProvidedShippingAddress.fullName,
+        phoneNumber: frontendProvidedShippingAddress.phoneNumber,
+        addressLine: collectedShippingAddress?.address?.line1 || frontendProvidedShippingAddress.addressLine,
+        city: collectedShippingAddress?.address?.city || frontendProvidedShippingAddress.city,
+        state: collectedShippingAddress?.address?.state || frontendProvidedShippingAddress.state,
+        postalCode: collectedShippingAddress?.address?.postal_code || frontendProvidedShippingAddress.postalCode,
+        country: collectedShippingAddress?.address?.country || frontendProvidedShippingAddress.country,
+      };
+
+      const order = new Order({
+        orderId: uuidv4(),
+        sessionId: session.id,
+        user: meta.userId || null,
+        guestId: meta.guestId || null,
+        isGuest: meta.isGuest === "true",
+        email: expandedSession.customer_details.email,
+        totalAmount: expandedSession.amount_total / 100,
+        items: lineItems.data.map((item) => ({
+          name: item?.description,
+          quantity: item.quantity,
+          price: item.amount_total / 100,
+          productId: item.price.product.metadata.productId,
+          category: item.price.product.metadata.category,
+          originalPrice: item.price.product.metadata.originalPrice,
+          image: item.price.product.images[0],
+        })),
+        shippingAddress: addressToStore,
+        paymentStatus: "paid",
+        status: "processing",
+      });
+
+      await order.save();
+
+      return res.status(200).send("Order stored successfully");
+    } catch (error) {
+      console.error("Error creating order from webhook:", error);
+      return res.status(500).send("Webhook processing failed");
+    }
+  }
+
+
+  res.status(200).send("Event received");
 };

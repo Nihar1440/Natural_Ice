@@ -20,8 +20,15 @@ const orderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    sessionId: { type: String, required: true },
-    email: { type: String, required: true },
+    sessionId: { 
+      type: String, 
+      required: true,
+      unique: true,
+    },
+    email: { 
+      type: String, 
+      required: true 
+    },
     items: [
       {
         name: String,
