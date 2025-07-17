@@ -55,8 +55,33 @@ export const getOrderById = async (req, res) => {
 
 export const getOrder = async (req, res) => {
   try {
-    // Populate the 'user' field with user info (e.g., name, email)
-    const orders = await Order.find().populate('user', 'name email phoneNumber');
+    const { name, status, date } = req.query;
+    const filter = {};
+
+    // Filter by status
+    if (status) {
+      filter.status = status;
+    }
+
+    // Filter by date (createdAt)
+    if (date) {
+      const start = new Date(date);
+      const end = new Date(date);
+      end.setDate(end.getDate() + 1);
+      filter.createdAt = { $gte: start, $lt: end };
+    }
+
+    // Always use find + populate
+    let orders = await Order.find(filter).populate('user', 'name email phoneNumber');
+
+    // If name filter is provided, filter in-memory after population
+    if (name) {
+      const nameLower = name.toLowerCase();
+      orders = orders.filter(order =>
+        order.user && order.user.name && order.user.name.toLowerCase().includes(nameLower)
+      );
+    }
+
     res.status(200).json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });

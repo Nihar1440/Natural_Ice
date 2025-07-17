@@ -14,7 +14,7 @@ router.get("/admin-data", protect, isAdmin, (req, res) => {
 });
 
 router.get("/all-users",isAdmin, getAllUsers);
-router.delete("/delete/:id",protect, deleteUser);
+router.delete("/delete/:id",protect, isAdmin, deleteUser);
 router.post("/refresh-token",refreshToken);
 
 router.post("/logout",logoutUser)

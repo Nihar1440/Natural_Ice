@@ -1,30 +1,32 @@
-import {User} from '../models/user.model.js'
+import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { createTransport } from 'nodemailer';
+import { createTransport } from "nodemailer";
 
 //create user
-export const register = async (req,res) =>{
-    try {
-        const {name,email,password,address} = req.body
+export const register = async (req, res) => {
+  try {
+    const { name, email, password, address } = req.body;
 
-        const UserExist = await User.findOne({email})
-        if(UserExist){
-        return res.status(400).json({success:false, message:"User Already exist"})
-        } 
+    const UserExist = await User.findOne({ email });
+    if (UserExist) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User Already exist" });
+    }
 
-    const user = new User({name,email,password,address});
-    const savedUser = await user.save();  
+    const user = new User({ name, email, password, address });
+    const savedUser = await user.save();
     const { password: _, ...response } = savedUser.toObject();
 
-    res.status(201).json({success:true, message:"User Created",data:response})  
-    } catch (error) {
-        res.status(500).json({message:error.message})
-    }
-}
-
-
+    res
+      .status(201)
+      .json({ success: true, message: "User Created", data: response });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 const generateAccessToken = (user) => {
   return jwt.sign(
@@ -35,16 +37,10 @@ const generateAccessToken = (user) => {
 };
 
 const generateRefreshToken = (user) => {
-  return jwt.sign(
-    { id: user._id },
-    process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: process.env.REFRESH_EXPIRES_IN }
-  );
-  
+  return jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: process.env.REFRESH_EXPIRES_IN,
+  });
 };
-
-
-
 
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
@@ -54,83 +50,81 @@ export const loginUser = async (req, res) => {
     if (!user) return res.status(404).json({ message: "Invalid credentials" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
-  const { password:_, ...userProfile } = user.toObject();
+    if (!isMatch)
+      return res.status(401).json({ message: "Invalid credentials" });
+    const { password: _, ...userProfile } = user.toObject();
 
-  const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken(user);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
     res
-    .cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    })
-    .status(200)
-    .json({userProfile, accessToken });
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      })
+      .status(200)
+      .json({ userProfile, accessToken });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-
-export const updateUser = async(req, res)=>{
+export const updateUser = async (req, res) => {
   try {
-    const {name,email,address} = req.body
-  const user = await User.findById(req.params.id); // fetch existing product
-  if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const { name, email, address } = req.body;
+    const user = await User.findById(req.params.id); // fetch existing product
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
     user.name = name ?? user.name;
     user.email = email ?? user.email;
     user.address = address ?? user.address;
 
     const updatedUser = await user.save();
-    res.status(200).json({message:"User updated successfully", updatedUser});
-  } 
-  
-catch (error) {
+    res.status(200).json({ message: "User updated successfully", updatedUser });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
-
-}
+};
 
 export const getuser = async (req, res) => {
   try {
     // 1. Get token from header
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Authorization token missing or invalid' });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ message: "Authorization token missing or invalid" });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(" ")[1];
 
     // 2. Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 3. Find user by ID
-    const user = await User.findById(decoded.id).select('-password'); // exclude password if needed
+    const user = await User.findById(decoded.id).select("-password"); // exclude password if needed
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // 4. Send user data
     res.status(200).json({ user });
   } catch (error) {
-    console.error('Error fetching user:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-
 export const logoutUser = (req, res) => {
-  res.clearCookie('refreshToken', {
+  res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: true,
-    sameSite: 'strict', // make sure this matches how you set it
+    sameSite: "strict", // make sure this matches how you set it
   });
-  res.status(200).json({ message: 'Logged out successfully' });
+  res.status(200).json({ message: "Logged out successfully" });
 };
 
 // Forgot Password
@@ -209,7 +203,8 @@ export const changePassword = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Old password is incorrect" });
+    if (!isMatch)
+      return res.status(401).json({ message: "Old password is incorrect" });
 
     user.password = newPassword;
     await user.save();
@@ -218,7 +213,7 @@ export const changePassword = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}
+};
 
 export const refreshToken = async (req, res) => {
   const token = req.cookies.refreshToken;
@@ -233,47 +228,63 @@ export const refreshToken = async (req, res) => {
     const newAccessToken = jwt.sign(
       { id: decoded.id, role: decoded.role },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.ACCESS_EXPIRES_IN || '30s' }
+      { expiresIn: process.env.ACCESS_EXPIRES_IN || "30s" }
     );
 
     // Return only access token; refresh token stays in cookie
     res.json({ accessToken: newAccessToken });
-
   } catch (err) {
-    console.error('Refresh error:', err.message);
+    console.error("Refresh error:", err.message);
     return res.status(403).json({ message: "Invalid refresh token" });
   }
-}
-
+};
 
 export const getAllUsers = async (req, res) => {
-
   try {
-    const users = await User.find({role:'user'}).select('-password -refreshtoken').lean();
+    const users = await User.find({ role: "user" })
+      .select("-password -refreshtoken")
+      .lean();
 
-    if(!users.length){
-      return res.status(400).json({message:'No users found'});
+    if (!users.length) {
+      return res.status(400).json({ message: "No users found" });
     }
-    res.status(200).json({success:true, message:'Users fetched successfully', data:users});
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Users fetched successfully",
+        data: users,
+      });
   } catch (error) {
-    res.status(500).json({success:false, message:error.message || 'Internal server error'});
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal server error",
+      });
   }
-}
-
+};
 
 export const deleteUser = async (req, res) => {
-
   try {
-    const {id} = req.params;
-    if(req.user.id !== id){
-      return res.status(403).json({message:'Unauthorized'});
+    const { id } = req.params;
+    // Allow if admin or the user themselves
+    if (req.user.role !== "admin" && req.user.id !== id) {
+      return res.status(403).json({ message: "Unauthorized" });
     }
 
     const user = await User.findByIdAndDelete(id);
-    if(!user) return res.status(404).json({message:'User not found'});
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json({success:true, message:'User deleted successfully'});
+    res
+      .status(200)
+      .json({ success: true, message: "User deleted successfully" });
   } catch (error) {
-    res.status(500).json({success:false, message:error.message || 'Internal server error'});
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal server error",
+      });
   }
-}
+};
