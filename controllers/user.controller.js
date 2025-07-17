@@ -35,7 +35,6 @@ const generateAccessToken = (user) => {
 };
 
 const generateRefreshToken = (user) => {
-    console.log(process.env.REFRESH_TOKEN_SECRET);
   return jwt.sign(
     { id: user._id },
     process.env.REFRESH_TOKEN_SECRET,
@@ -53,7 +52,6 @@ export const loginUser = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "Invalid credentials" });
-console.log(user,'ejkds');
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
@@ -68,6 +66,7 @@ console.log(user,'ejkds');
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     })
+    .status(200)
     .json({userProfile, accessToken });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -80,13 +79,14 @@ export const updateUser = async(req, res)=>{
     const {name,email,address} = req.body
   const user = await User.findById(req.params.id); // fetch existing product
   if (!user) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ message: 'User not found' });
     }
- user.name = name ?? user.name;
-    user.email = email ?? product.email;
-    user.address = address ?? product.address;
-       const updatedProduct = await user.save();
-    res.json(updatedProduct);
+    user.name = name ?? user.name;
+    user.email = email ?? user.email;
+    user.address = address ?? user.address;
+
+    const updatedUser = await user.save();
+    res.status(200).json({message:"User updated successfully", updatedUser});
   } 
   
 catch (error) {
