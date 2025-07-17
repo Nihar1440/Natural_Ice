@@ -47,8 +47,12 @@ export const loginUser = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "Invalid credentials" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
+    if(user.status === 'inactive'){
+      return res.status(401).json({message:'User is inactive'});
+    }
+     
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
@@ -90,27 +94,13 @@ export const updateUser = async (req, res) => {
 
 export const getuser = async (req, res) => {
   try {
-    // 1. Get token from header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res
-        .status(401)
-        .json({ message: "Authorization token missing or invalid" });
-    }
-
-    const token = authHeader.split(" ")[1];
-
-    // 2. Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // 3. Find user by ID
-    const user = await User.findById(decoded.id).select("-password"); // exclude password if needed
+    const id = req.user.id;
+    const user = await User.findById(id).select('-password');
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 4. Send user data
     res.status(200).json({ user });
   } catch (error) {
     console.error("Error fetching user:", error);
@@ -273,8 +263,15 @@ export const deleteUser = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const user = await User.findByIdAndDelete(id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const user = await User.findById(id);
+    if(!user) return res.status(401).json({message:'User not found'});
+
+    if(user.status === 'inactive'){
+      return res.status(400).json({message:'User is already inactive'});
+    }
+
+    user.status = 'inactive';
+    await user.save();
 
     res
       .status(200)
@@ -287,4 +284,26 @@ export const deleteUser = async (req, res) => {
         message: error.message || "Internal server error",
       });
   }
-};
+}
+
+
+export const setStatusActive = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({email});
+    if(!user) return res.status(401).json({message:'User not found'});
+
+    if(user.status === 'active'){
+      return res.status(200).json({message:'User is already active'});
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if(!isMatch) return res.status(401).json({message:'Invalid password'});
+
+    user.status = 'active';
+    await user.save();
+    res.status(200).json({success:true, message:'User status set to active'});
+  } catch (error) {
+    res.status(500).json({success:false, message:error.message || 'Internal server error'});
+  }
+}

@@ -25,6 +25,11 @@ const userSchema = new Schema({
         enum:['admin','user'],
         default:'user'
     },
+    status:{
+        type:String,
+        enum:['active','inactive'],
+        default:'active'
+    },
     refreshtoken:{
         type:String
     },
