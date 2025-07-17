@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Cart } from "../models/cart.model.js";
 import jwt from "jsonwebtoken";
 
@@ -119,19 +120,10 @@ export const clearUserCart = async (req, res) => {
 
 
 export const mergeProduct = async (req, res) => {
-  const { products } = req.body;
-
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Not authorized" });
-  }
-
-  const token = authHeader.split(" ")[1];
+  const { cartItems } = req.body;
+  const userId = req.user.id;
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id;
 
     let cart = await Cart.findOne({ userId, isActive: true });
 
@@ -139,16 +131,16 @@ export const mergeProduct = async (req, res) => {
       cart = new Cart({ userId, items: [], totalPrice: 0 });
     }
 
-    for (const item of products) {
+    for (const item of cartItems) {
       const existingItem = cart.items.find(
-        (i) => i.productId.toString() === item.productId
+        (i) => i.productId.toString() === item.productId._id
       );
 
       if (existingItem) {
         existingItem.quantity += item.quantity;
       } else {
         cart.items.push({
-          productId: item.productId,
+          productId: new mongoose.Types.ObjectId(item.productId._id),
           quantity: item.quantity,
           priceAtTime: item.price,
         });

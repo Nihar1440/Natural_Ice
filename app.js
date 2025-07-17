@@ -17,6 +17,7 @@ import shippingAddressRoutes from "./routes/shippingAddressRoutes.js"
 
 import cors from "cors"
 import cookieParser from "cookie-parser";
+import { stripeWebhookHandler } from "./controllers/payment.controller.js"
 
 const app = express()
 const server = http.createServer(app);
@@ -40,6 +41,8 @@ io.on("connection", (socket) => {
 })
 
 app.set('socketio', io)
+
+app.use("/api/payment/stripe-webhook", express.raw({ type: "application/json" }), stripeWebhookHandler);
 
 app.use(cors({
     origin: "http://localhost:5173",
