@@ -1,5 +1,5 @@
 import express from "express"
-import {register,loginUser, updateUser, getuser,logoutUser, forgotPassword, resetPassword, refreshToken, changePassword} from "../controllers/user.controller.js"
+import {register,loginUser, updateUser, getuser,logoutUser, forgotPassword, resetPassword, refreshToken, changePassword, getAllUsers, deleteUser} from "../controllers/user.controller.js"
 import { protect,isAdmin } from "../middlewares/authmiddleware.js"
 
 const router = express.Router()
@@ -13,6 +13,8 @@ router.get("/admin-data", protect, isAdmin, (req, res) => {
   res.json({ message: "Welcome Admin" });
 });
 
+router.get("/all-users",isAdmin, getAllUsers);
+router.delete("/delete/:id",protect, deleteUser);
 router.post("/refresh-token",refreshToken);
 
 router.post("/logout",logoutUser)

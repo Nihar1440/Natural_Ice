@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
 import { Cart } from "../models/cart.model.js";
-import jwt from "jsonwebtoken";
 
 //create Cart
 
 export const addItemToCart = async (req, res) => {
   try {
+    const isUser = req.user.role === 'user';
+    if(!isUser) return res.status(403).json({message:'Unauthorized'});
+    
     const { userId, productId, quantity, price } = req.body;
 
     let cart = await Cart.findOne({ userId, isActive: true });
@@ -41,17 +43,8 @@ export const addItemToCart = async (req, res) => {
 
 //get all cartData
 export const getUserCart = async (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Not authorized" });
-  }
-
-  const token = authHeader.split(" ")[1]; // Extract token after "Bearer"
-
+  const userId = req.user.id;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id; // Extract user ID from token
 
     const cart = await Cart.findOne({ userId, isActive: true }).populate("items.productId");
 
@@ -89,17 +82,8 @@ export const removeCartItem = async (req, res) => {
 };
 
 export const clearUserCart = async (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Not authorized" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id;
+    const userId = req.user.id;
 
     const cart = await Cart.findOne({ userId, isActive: true });
 
