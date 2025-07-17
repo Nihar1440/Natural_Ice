@@ -18,6 +18,7 @@ import shippingAddressRoutes from "./routes/shippingAddressRoutes.js"
 import cors from "cors"
 import cookieParser from "cookie-parser";
 import { stripeWebhookHandler } from "./controllers/payment.controller.js"
+import { protect } from "./middlewares/authmiddleware.js"
 
 const app = express()
 const server = http.createServer(app);
@@ -57,7 +58,7 @@ app.use('/api/product', productRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/user', userRoutes)
 app.use('/api/productlist', productlistRoutes)
-app.use('/api/cart', cartRoutes)
+app.use('/api/cart', protect, cartRoutes)
 app.use('/api/contact', emailRoutes);
 app.use('/api', chatRoutes)
 app.use('/api/wishlist', wishListRoutes)
