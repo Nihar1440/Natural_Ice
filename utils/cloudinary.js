@@ -19,4 +19,12 @@ const storage = new CloudinaryStorage({
   },
 });
 
-export { cloudinary, storage };
+const storageAvatar = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'natural_ice/avatars',
+    allowed_formats: ['jpeg', 'png', 'jpg','webp'],
+  },
+});
+
+export { cloudinary, storage, storageAvatar };
