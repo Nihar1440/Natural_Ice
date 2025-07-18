@@ -50,10 +50,10 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if(user.status === 'inactive'){
-      return res.status(401).json({message:'User is inactive'});
+    if (user.status === "inactive") {
+      return res.status(401).json({ message: "User is inactive" });
     }
-     
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
@@ -78,16 +78,17 @@ export const loginUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { name, email, address } = req.body;
-    const user = await User.findById(req.params.id).select('+avatarPublicId -password'); // fetch existing product
+    const user = await User.findById(req.params.id).select(
+      "+avatarPublicId -password"
+    ); // fetch existing product
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     user.name = name || user.name;
     user.email = email || user.email;
     user.address = address || user.address;
-    if(req.file){
-      
-      if(user.avatarPublicId){
+    if (req.file) {
+      if (user.avatarPublicId) {
         await cloudinary.uploader.destroy(user.avatarPublicId);
       }
       user.avatar = req.file.path;
@@ -98,7 +99,7 @@ export const updateUser = async (req, res) => {
     delete updatedUser.avatarPublicId;
     res.status(200).json({ message: "User updated successfully", updatedUser });
   } catch (error) {
-    console.error('Error updating user:', error); 
+    console.error("Error updating user:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -106,7 +107,7 @@ export const updateUser = async (req, res) => {
 export const getuser = async (req, res) => {
   try {
     const id = req.user.id;
-    const user = await User.findById(id).select('-password');
+    const user = await User.findById(id).select("-password");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -242,27 +243,24 @@ export const refreshToken = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: "user" })
+    const { name } = req.query;
+    const filter = { role: "user" };
+    if (name) {
+      filter.name = { $regex: name, $options: "i" };
+    }
+    const users = await User.find(filter)
       .select("-password -refreshtoken")
       .lean();
-
-    if (!users.length) {
-      return res.status(400).json({ message: "No users found" });
-    }
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Users fetched successfully",
-        data: users,
-      });
+    res.status(200).json({
+      success: true,
+      message: users.length ? "Users fetched successfully" : "No users found",
+      data: users,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal server error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error",
+    });
   }
 };
 
@@ -275,18 +273,74 @@ export const deleteUser = async (req, res) => {
     }
 
     const user = await User.findById(id);
-    if(!user) return res.status(401).json({message:'User not found'});
+    if (!user) return res.status(401).json({ message: "User not found" });
 
-    if(user.status === 'inactive'){
-      return res.status(400).json({message:'User is already inactive'});
+    if (user.status === "inactive") {
+      return res.status(400).json({ message: "User is already inactive" });
     }
 
-    user.status = 'inactive';
+    user.status = "inactive";
     await user.save();
 
     res
       .status(200)
       .json({ success: true, message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
+export const deleteUserAvatar = async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (req.user.id !== id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    const user = await User.findById(id).select("+avatarPublicId");
+    if (!user) return res.status(401).json({ message: "User not found" });
+
+    if (user.avatarPublicId) {
+      await cloudinary.uploader.destroy(user.avatarPublicId);
+      user.avatar = null;
+      user.avatarPublicId = null;
+      await user.save();
+      res
+        .status(200)
+        .json({ success: true, message: "Avatar deleted successfully" });
+    }
+    res.status(200).json({ success: true, message: "No avatar to delete" });
+  } catch (error) {
+    console.error("Error deleting user avatar:", error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal server error",
+      });
+  }
+};
+
+export const setStatusActive = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ message: "User not found" });
+
+    if (user.status === "active") {
+      return res.status(200).json({ message: "User is already active" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid password" });
+
+    user.status = "active";
+    await user.save();
+    res
+      .status(200)
+      .json({ success: true, message: "User status set to active" });
   } catch (error) {
     res
       .status(500)
@@ -295,49 +349,4 @@ export const deleteUser = async (req, res) => {
         message: error.message || "Internal server error",
       });
   }
-}
-
-export const deleteUserAvatar = async (req, res) => {
-  const {id} = req.params;
-  try{
-    if(req.user.id !== id){
-      return res.status(403).json({message:'Unauthorized'});
-    }
-    const user = await User.findById(id).select('+avatarPublicId');
-    if(!user) return res.status(401).json({message:'User not found'});
-
-    if(user.avatarPublicId){
-      await cloudinary.uploader.destroy(user.avatarPublicId);
-      user.avatar = null;
-      user.avatarPublicId = null;
-      await user.save();
-      res.status(200).json({success:true, message:'Avatar deleted successfully'});
-    }
-    res.status(200).json({success:true, message:'No avatar to delete'});
-  } catch (error) {
-    console.error('Error deleting user avatar:', error);
-    res.status(500).json({success:false, message:error.message || 'Internal server error'});
-  }
-}
-
-
-export const setStatusActive = async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const user = await User.findOne({email});
-    if(!user) return res.status(401).json({message:'User not found'});
-
-    if(user.status === 'active'){
-      return res.status(200).json({message:'User is already active'});
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if(!isMatch) return res.status(401).json({message:'Invalid password'});
-
-    user.status = 'active';
-    await user.save();
-    res.status(200).json({success:true, message:'User status set to active'});
-  } catch (error) {
-    res.status(500).json({success:false, message:error.message || 'Internal server error'});
-  }
-}
+};
