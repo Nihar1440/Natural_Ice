@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { createTransport } from "nodemailer";
+import { cloudinary } from "../utils/cloudinary.js";
 
 //create user
 export const register = async (req, res) => {
@@ -77,17 +78,27 @@ export const loginUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { name, email, address } = req.body;
-    const user = await User.findById(req.params.id); // fetch existing product
+    const user = await User.findById(req.params.id).select('+avatarPublicId -password'); // fetch existing product
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    user.name = name ?? user.name;
-    user.email = email ?? user.email;
-    user.address = address ?? user.address;
-
-    const updatedUser = await user.save();
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.address = address || user.address;
+    if(req.file){
+      
+      if(user.avatarPublicId){
+        await cloudinary.uploader.destroy(user.avatarPublicId);
+      }
+      user.avatar = req.file.path;
+      user.avatarPublicId = req.file.filename;
+    }
+    const userObj = await user.save();
+    const updatedUser = userObj.toObject();
+    delete updatedUser.avatarPublicId;
     res.status(200).json({ message: "User updated successfully", updatedUser });
   } catch (error) {
+    console.error('Error updating user:', error); 
     res.status(500).json({ message: error.message });
   }
 };
@@ -283,6 +294,29 @@ export const deleteUser = async (req, res) => {
         success: false,
         message: error.message || "Internal server error",
       });
+  }
+}
+
+export const deleteUserAvatar = async (req, res) => {
+  const {id} = req.params;
+  try{
+    if(req.user.id !== id){
+      return res.status(403).json({message:'Unauthorized'});
+    }
+    const user = await User.findById(id).select('+avatarPublicId');
+    if(!user) return res.status(401).json({message:'User not found'});
+
+    if(user.avatarPublicId){
+      await cloudinary.uploader.destroy(user.avatarPublicId);
+      user.avatar = null;
+      user.avatarPublicId = null;
+      await user.save();
+      res.status(200).json({success:true, message:'Avatar deleted successfully'});
+    }
+    res.status(200).json({success:true, message:'No avatar to delete'});
+  } catch (error) {
+    console.error('Error deleting user avatar:', error);
+    res.status(500).json({success:false, message:error.message || 'Internal server error'});
   }
 }
 

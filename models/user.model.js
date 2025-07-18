@@ -20,6 +20,15 @@ const userSchema = new Schema({
     address:{
         type:String,
     },
+    avatar:{
+        type:String,
+        default:null
+    },
+    avatarPublicId :{
+        type:String,
+        default:null,
+        select: false,
+    },
     role:{
         type:String,
         enum:['admin','user'],

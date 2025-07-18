@@ -1,12 +1,14 @@
 import express from "express"
-import {register,loginUser, updateUser, getuser,logoutUser, forgotPassword, resetPassword, refreshToken, changePassword, getAllUsers, deleteUser, setStatusActive} from "../controllers/user.controller.js"
+import {register,loginUser, updateUser, getuser,logoutUser, forgotPassword, resetPassword, refreshToken, changePassword, getAllUsers, deleteUser, setStatusActive, deleteUserAvatar} from "../controllers/user.controller.js"
 import { protect,isAdmin } from "../middlewares/authmiddleware.js"
+import { uploadAvatar } from "../middlewares/upload.js"
 
 const router = express.Router()
 
 router.post('/create',register)
 router.post('/login',loginUser)
-router.put('/update/:id',protect,updateUser)
+router.put('/update/:id',protect, uploadAvatar.single('avatar'),updateUser)
+router.delete('/delete-avatar/:id',protect, deleteUserAvatar)
 
 router.get("/profile", protect, getuser)
 router.get("/admin-data", protect, isAdmin, (req, res) => {
