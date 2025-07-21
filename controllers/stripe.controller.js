@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { Order } from "../models/order.model.js";
 import { v4 as uuidv4 } from 'uuid';
 import { orderPlacedNotification } from "../utils/notification.js";
+import { Payment } from "../models/payment.model.js";
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -181,7 +182,7 @@ export const stripeWebhookHandler = async (req, res) => {
 
       // Expand line items and shipping 
       const expandedSession = await stripe.checkout.sessions.retrieve(session.id, {
-        expand: ["line_items.data.price.product", "customer", "shipping"],
+        expand: ["line_items.data.price.product", "customer", "shipping", "payment_intent.charges"],
       });
 
       const lineItems = expandedSession.line_items;
@@ -226,8 +227,7 @@ export const stripeWebhookHandler = async (req, res) => {
           image: item.price.product.images[0],
         })),
         shippingAddress: addressToStore,
-        paymentStatus: "paid",
-        status: "processing",
+        status: "Processing",
       });
 
       await order.save();
@@ -235,6 +235,21 @@ export const stripeWebhookHandler = async (req, res) => {
       if (order.user) {
         await orderPlacedNotification(order.user, order.orderId);
       }
+      const payment = new Payment({
+        orderId: order._id,
+        userId: order.user || null,
+        guestId: order.guestId || null,
+        email: order.email,
+        amount: order.totalAmount,
+        paymentStatus: "paid",
+        paymentMethod: expandedSession.payment_method_types[0],
+        gateway: "stripe",
+        sessionId: order.sessionId,
+        receiptUrl: expandedSession.payment_intent?.charges?.data[0]?.receipt_url || null,
+        paymentTime: new Date(expandedSession.created * 1000),
+      });
+      
+      await payment.save();
 
       return res.status(200).send("Order stored successfully");
     } catch (error) {
