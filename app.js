@@ -19,6 +19,7 @@ import cors from "cors"
 import cookieParser from "cookie-parser";
 import { stripeWebhookHandler } from "./controllers/payment.controller.js"
 import { protect } from "./middlewares/authmiddleware.js"
+import notificationRoutes from "./routes/notification.route.js";
 
 const app = express()
 const server = http.createServer(app);
@@ -66,5 +67,6 @@ app.use('/api/payment', paymentRoutes)
 app.use('/api/receipt', receiptRoutes)
 app.use('/api/order', orderRoutes)
 app.use('/api', shippingAddressRoutes)
+app.use('/api/notifications', protect, notificationRoutes)
 
 export { app }
