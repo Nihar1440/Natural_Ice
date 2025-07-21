@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Order } from "../models/order.model.js";
 import { v4 as uuidv4 } from 'uuid';
+import { orderPlacedNotification } from "../utils/notification.js";
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -137,6 +138,10 @@ export const storeOrderAfterPayment = async (req, res) => {
 
     await order.save();
 
+    if (order.user) {
+      await orderPlacedNotification(order.user, order.orderId);
+    }
+
     res.status(201).json({
       message: "Order saved successfully",
       orderId: order.orderId,
@@ -226,6 +231,10 @@ export const stripeWebhookHandler = async (req, res) => {
       });
 
       await order.save();
+
+      if (order.user) {
+        await orderPlacedNotification(order.user, order.orderId);
+      }
 
       return res.status(200).send("Order stored successfully");
     } catch (error) {

@@ -1,4 +1,5 @@
 import { Order } from "../models/order.model.js";
+import { orderUpdatedNotification } from "../utils/notification.js";
 
 export const createOrder = async (req, res) => {
   try {
@@ -95,9 +96,9 @@ export const getUserOrders = async (req, res) => {
     const orders = await Order.find({ user: userId });
     
     if (!orders || orders.length === 0) {
-      return res.status(404).json({ message: 'No orders found for this user' });
+      return res.status(200).json({ message: 'No orders found for this user', orders: [] });
     }
-    res.status(200).json(orders);
+    res.status(200).json({orders});
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -117,6 +118,26 @@ export const updateOrder = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const updatedOrder = await Order.findByIdAndUpdate(id, { status }, { new: true });
+    if (!updatedOrder) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    if (updatedOrder.user) {
+      await orderUpdatedNotification(updatedOrder.user, updatedOrder.orderId, status);
+    }
+    res.status(200).json({ message: 'Order status updated successfully', order: updatedOrder });
+  } catch (error) {
+    res.status(500).json({ message: error.message ||"Internal server error" });
+  }
+}
+
 
 export const deleteOrder = async (req, res) => {
   try {
