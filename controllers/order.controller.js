@@ -130,7 +130,7 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
     if (updatedOrder.user) {
-      await orderUpdatedNotification(updatedOrder.user, updatedOrder.orderId, status);
+      await orderUpdatedNotification(updatedOrder.user, updatedOrder._id, status);
     }
     res.status(200).json({ message: 'Order status updated successfully', order: updatedOrder });
   } catch (error) {

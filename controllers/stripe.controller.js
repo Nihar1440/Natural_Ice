@@ -140,7 +140,7 @@ export const storeOrderAfterPayment = async (req, res) => {
     await order.save();
 
     if (order.user) {
-      await orderPlacedNotification(order.user, order.orderId);
+      await orderPlacedNotification(order.user, order._id);
     }
 
     res.status(201).json({
@@ -233,7 +233,7 @@ export const stripeWebhookHandler = async (req, res) => {
       await order.save();
 
       if (order.user) {
-        await orderPlacedNotification(order.user, order.orderId);
+        await orderPlacedNotification(order.user, order._id);
       }
       const payment = new Payment({
         orderId: order._id,
