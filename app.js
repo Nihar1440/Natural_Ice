@@ -17,7 +17,7 @@ import shippingAddressRoutes from "./routes/shippingAddressRoutes.js"
 
 import cors from "cors"
 import cookieParser from "cookie-parser";
-import { stripeWebhookHandler } from "./controllers/payment.controller.js"
+import { stripeWebhookHandler } from "./controllers/stripe.controller.js"
 import { protect } from "./middlewares/authmiddleware.js"
 import notificationRoutes from "./routes/notification.route.js";
 

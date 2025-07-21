@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 const NotificationSchema = new Schema({
   userId: {
-    type: mongoose.Schema.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
@@ -27,13 +27,9 @@ const NotificationSchema = new Schema({
     type: Boolean,
     default: false,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
 }, {
   timestamps: true,
 });
 
 
-export default mongoose.model("Notification", NotificationSchema);
+export const Notification = mongoose.model("Notification", NotificationSchema);
