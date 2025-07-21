@@ -8,8 +8,8 @@ const NotificationSchema = new Schema({
   },
   type: {
     type: String,
-    enum: ["order", "info", "warning"],
-    default: "info",
+    enum: ["Order", "Info", "Warning"],
+    default: "Info",
   },
   title: {
     type: String,

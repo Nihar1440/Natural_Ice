@@ -6,7 +6,7 @@ const paymentSchema = new Schema({
         ref: 'Order',
         required: true
     },
-    user: { 
+    userId: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User' 
     },
@@ -18,8 +18,8 @@ const paymentSchema = new Schema({
 
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'failed', 'refunded'],
-        default: 'pending'
+        enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
+        default: 'Pending'
     },
     paymentMethod: { type: String }, // card, upi
     gateway: { type: String }, // stripe, razorpay
