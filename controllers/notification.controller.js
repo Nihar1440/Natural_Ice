@@ -29,21 +29,25 @@ export const markAsRead = async (req, res) => {
 }
 
 export const markAllAsRead = async (req, res) => {
-    const {userId} = req.params;
-    try{
-        if(!userId){
-            return res.status(400).json({success:false, message: "User ID is required"});
+    const { userId } = req.params;
+    try {
+        if (!userId) {
+            return res.status(400).json({ success: false, message: "User ID is required" });
         }
-        const updatedNotifications = await Notification.updateMany({userId}, {isRead: true});
-        if(!updatedNotifications.length){
-            return res.status(404).json({success:false, message: "No notifications found"});
+        
+        const updateResult = await Notification.updateMany(
+            { userId: userId, isRead: false }, 
+            { $set: { isRead: true } }
+        );
+        if (updateResult.matchedCount === 0) {
+            return res.status(200).json({ success: true, message: "No unread notifications to mark as read." });
         }
-        res.status(200).json({success:true, message: "All notifications marked as read"});
-    }catch(error){
+        res.status(200).json({ success: true, message: "All notifications marked as read" });
+    } catch (error) {
         console.error('Error marking all notifications as read:', error);
-        res.status(500).json({success:false, message: error.message});
+        res.status(500).json({ success: false, message: "An error occurred while marking notifications as read." });
     }
-}
+};
 
 export const deleteNotification = async (req, res) => {
     const {id} = req.params;
@@ -67,14 +71,11 @@ export const deleteAllNotifications = async (req, res) => {
         if(!userId){
             return res.status(400).json({success:false, message: "User ID is required"});
         }
-
         let filter = { userId };
         if (Array.isArray(notification) && notification.length > 0) {
             filter._id = { $in: notification };
         }
-
         const deletedNotifications = await Notification.deleteMany(filter);
-        
         if(!deletedNotifications.deletedCount){
             return res.status(404).json({success:false, message: "No notifications found"});
         }
