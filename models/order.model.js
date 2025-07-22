@@ -16,18 +16,18 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
-    isGuest:{
+    isGuest: {
       type: Boolean,
       default: false,
     },
-    sessionId: { 
-      type: String, 
+    sessionId: {
+      type: String,
       required: true,
       unique: true,
     },
-    email: { 
-      type: String, 
-      required: true 
+    email: {
+      type: String,
+      required: true,
     },
     items: [
       {
@@ -52,17 +52,22 @@ const orderSchema = new mongoose.Schema(
     totalAmount: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["Pending", "Processing", "Shipped", "Delivered", "Returned","Cancelled"],
+      enum: ["Pending", "Processing", "Shipped", "Delivered", "Returned", "Cancelled"],
       default: "Pending",
     },
     currentLocation: { type: String },
     estimatedDeliveryDate: { type: Date },
+
+    // ✅ New fields added below:
+    shippedAt: { type: Date },       // Set when status is changed to "Shipped"
+    deliveredAt: { type: Date },     // Set when status is changed to "Delivered"
+
     trackingHistory: [
       {
         status: String,
         location: String,
         timestamp: Date,
-      }
+      },
     ],
   },
   { timestamps: true }

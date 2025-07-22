@@ -98,11 +98,15 @@ export const getUserOrders = async (req, res) => {
     if (!orders || orders.length === 0) {
       return res.status(200).json({ message: 'No orders found for this user', orders: [] });
     }
-    res.status(200).json({orders});
+
+    res.status(200).json({ orders }); // createdAt, shippedAt, deliveredAt will be included
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 }
+
+
+
 
 export const updateOrder = async (req, res) => {
   try {
@@ -123,20 +127,53 @@ export const updateOrder = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, location = "Warehouse" } = req.body;
 
-    const updatedOrder = await Order.findByIdAndUpdate(id, { status }, { runValidators: true, new: true });
-    if (!updatedOrder) {
+    const order = await Order.findById(id);
+    if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-    if (updatedOrder.user) {
-      await orderUpdatedNotification(updatedOrder.user, updatedOrder._id, status);
+
+    const now = new Date();
+
+    // Set timestamps based on status
+    if (status === "Shipped" && !order.shippedAt) {
+      order.shippedAt = now;
     }
-    res.status(200).json({ message: 'Order status updated successfully', order: updatedOrder });
+
+    if (status === "Delivered" && !order.deliveredAt) {
+      order.deliveredAt = now;
+    }
+
+    // Update tracking history
+    order.trackingHistory.push({
+      status,
+      location,
+      timestamp: now,
+    });
+
+    order.status = status;
+    await order.save();
+
+    // Optional: Send socket event if using real-time tracking
+    const io = req.app.get('socketio');
+    if (io) {
+      io.to(order._id.toString()).emit('orderStatusUpdate', order);
+    }
+
+    // Optional: Notify registered user
+    if (order.user) {
+      await orderUpdatedNotification(order.user, order._id, status);
+    }
+
+    res.status(200).json({ message: 'Order status updated successfully', order });
+
   } catch (error) {
-    res.status(500).json({ message: error.message ||"Internal server error" });
+    res.status(500).json({ message: error.message || "Internal server error" });
   }
-}
+};
+
+
 
 
 export const deleteOrder = async (req, res) => {
