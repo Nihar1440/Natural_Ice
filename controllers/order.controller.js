@@ -133,12 +133,12 @@ export const updateOrderStatus = async (req, res) => {
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-
     const now = new Date();
-
-    // Set timestamps based on status
     if (status === "Shipped" && !order.shippedAt) {
       order.shippedAt = now;
+      const estimatedDate = new Date(now);
+      estimatedDate.setDate(estimatedDate.getDate() + 5);
+      order.estimatedDeliveryDate = estimatedDate;
     }
 
     if (status === "Delivered" && !order.deliveredAt) {

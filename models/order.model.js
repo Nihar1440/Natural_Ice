@@ -58,9 +58,8 @@ const orderSchema = new mongoose.Schema(
     currentLocation: { type: String },
     estimatedDeliveryDate: { type: Date },
 
-    // ✅ New fields added below:
-    shippedAt: { type: Date },       // Set when status is changed to "Shipped"
-    deliveredAt: { type: Date },     // Set when status is changed to "Delivered"
+    shippedAt: { type: Date },     
+    deliveredAt: { type: Date },  
 
     trackingHistory: [
       {
