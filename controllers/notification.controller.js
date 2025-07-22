@@ -62,16 +62,25 @@ export const deleteNotification = async (req, res) => {
 export const deleteAllNotifications = async (req, res) => {
     const {userId} = req.params;
     try{
+        const { notification } = req.body;
+
         if(!userId){
             return res.status(400).json({success:false, message: "User ID is required"});
         }
-        const deletedNotifications = await Notification.deleteMany({userId});
-        if(!deletedNotifications.length){
+
+        let filter = { userId };
+        if (Array.isArray(notification) && notification.length > 0) {
+            filter._id = { $in: notification };
+        }
+
+        const deletedNotifications = await Notification.deleteMany(filter);
+        
+        if(!deletedNotifications.deletedCount){
             return res.status(404).json({success:false, message: "No notifications found"});
         }
-        res.status(200).json({success:true, message: "All notifications deleted successfully"});
+        res.status(200).json({success:true, message: "Notifications deleted successfully"});
     }catch(error){
-        console.error('Error deleting all notifications:', error);
+        console.error('Error deleting notifications:', error);
         res.status(500).json({success:false, message: error.message});
     }
 }
