@@ -28,6 +28,23 @@ export const markAsRead = async (req, res) => {
     }
 }
 
+export const markAllAsRead = async (req, res) => {
+    const {userId} = req.params;
+    try{
+        if(!userId){
+            return res.status(400).json({success:false, message: "User ID is required"});
+        }
+        const updatedNotifications = await Notification.updateMany({userId}, {isRead: true});
+        if(!updatedNotifications.length){
+            return res.status(404).json({success:false, message: "No notifications found"});
+        }
+        res.status(200).json({success:true, message: "All notifications marked as read"});
+    }catch(error){
+        console.error('Error marking all notifications as read:', error);
+        res.status(500).json({success:false, message: error.message});
+    }
+}
+
 export const deleteNotification = async (req, res) => {
     const {id} = req.params;
     try{
@@ -38,6 +55,23 @@ export const deleteNotification = async (req, res) => {
         res.status(200).json({success:true, message: "Notification deleted successfully"});
     }catch(error){
         console.error('Error deleting notification:', error);
+        res.status(500).json({success:false, message: error.message});
+    }
+}
+
+export const deleteAllNotifications = async (req, res) => {
+    const {userId} = req.params;
+    try{
+        if(!userId){
+            return res.status(400).json({success:false, message: "User ID is required"});
+        }
+        const deletedNotifications = await Notification.deleteMany({userId});
+        if(!deletedNotifications.length){
+            return res.status(404).json({success:false, message: "No notifications found"});
+        }
+        res.status(200).json({success:true, message: "All notifications deleted successfully"});
+    }catch(error){
+        console.error('Error deleting all notifications:', error);
         res.status(500).json({success:false, message: error.message});
     }
 }
