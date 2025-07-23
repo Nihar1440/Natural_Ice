@@ -9,6 +9,7 @@ import chatRoutes from "./routes/chat.route.js"
 import paymentRoutes from "./routes/payment.route.js"
 import receiptRoutes from "./routes/receipt.route.js"
 import orderRoutes from "./routes/order.route.js"
+import deliveryRoutes from "./routes/delivery.route.js"
 import { Server } from "socket.io";
 import http from "http";
 
@@ -68,5 +69,6 @@ app.use('/api/receipt', receiptRoutes)
 app.use('/api/order', orderRoutes)
 app.use('/api', shippingAddressRoutes)
 app.use('/api/notifications', protect, notificationRoutes)
+app.use('/api/delivery', deliveryRoutes)
 
 export { app }
