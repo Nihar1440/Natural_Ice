@@ -58,8 +58,13 @@ const orderSchema = new mongoose.Schema(
     currentLocation: { type: String },
     estimatedDeliveryDate: { type: Date },
 
-    shippedAt: { type: Date },     
-    deliveredAt: { type: Date },  
+    deliveryAgent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    deliveryNotes: { type: String },
+    shippedAt: { type: Date },
+    deliveredAt: { type: Date },
 
     trackingHistory: [
       {

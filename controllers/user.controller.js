@@ -50,8 +50,8 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (user.status === "inactive") {
-      return res.status(401).json({ message: "User is inactive" });
+    if (user.status === "Inactive") {
+      return res.status(401).json({ message: "User is Inactive" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -113,6 +113,10 @@ export const getuser = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.status === "Inactive") {
+      return res.status(401).json({ message: "User is Inactive" });
     }
 
     res.status(200).json({ user });
@@ -270,18 +274,18 @@ export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
     // Allow if admin or the user themselves
-    if (req.user.role !== "admin" && req.user.id !== id) {
+    if (req.user.id !== id) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
     const user = await User.findById(id);
     if (!user) return res.status(401).json({ message: "User not found" });
 
-    if (user.status === "inactive") {
-      return res.status(400).json({ message: "User is already inactive" });
+    if (user.status === "Inactive") {
+      return res.status(400).json({ message: "User is already Inactive" });
     }
 
-    user.status = "inactive";
+    user.status = "Inactive";
     await user.save();
 
     res
@@ -331,18 +335,22 @@ export const setStatusActive = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "User not found" });
 
-    if (user.status === "active") {
-      return res.status(200).json({ message: "User is already active" });
+    if(user.role !== 'user'){
+      return res.status(200).json({ message: "Unauthorized" });
+    }
+
+    if (user.status === "Active") {
+      return res.status(200).json({ message: "User is already Active" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid password" });
 
-    user.status = "active";
+    user.status = "Active";
     await user.save();
     res
       .status(200)
-      .json({ success: true, message: "User status set to active" });
+      .json({ success: true, message: "User status set to Active" });
   } catch (error) {
     res
       .status(500)
