@@ -264,7 +264,7 @@ export const stripeWebhookHandler = async (req, res) => {
         guestId: order.guestId || null,
         email: order.email,
         amount: order.totalAmount,
-        paymentStatus: "paid",
+        paymentStatus: "Paid",
         paymentMethod: expandedSession.payment_method_types[0],
         gateway: "stripe",
         sessionId: order.sessionId,
