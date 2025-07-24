@@ -133,6 +133,11 @@ export const updateOrderStatus = async (req, res) => {
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
+
+    if(status === order.status){
+      return res.status(400).json({ message: 'Order already in this status' });
+    }
+
     const now = new Date();
     if (status === "Shipped" && !order.shippedAt) {
       order.shippedAt = now;
