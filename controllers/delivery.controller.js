@@ -128,6 +128,10 @@ export const registerDeliveryAgent = async (req, res) => {
         return res.status(401).json({ success: false, message: "Delivery Agent is not Active" });
       }
 
+      if(order.deliveryAgent === deliveryAgent._id){
+        return res.status(400).json({ success: false, message: "Delivery Agent already assigned to this order" });
+      }
+
       order.deliveryAgent = deliveryAgentId;
       await order.save();
 
