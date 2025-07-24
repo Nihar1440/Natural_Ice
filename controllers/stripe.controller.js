@@ -81,20 +81,24 @@ export const storeOrderAfterPayment = async (req, res) => {
       });
     }
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["line_items.data.price.product", "customer", "shipping"],
+    const expandedSession = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["line_items.data.price.product", "customer", "shipping", "payment_intent.charges"],
     });
-    const lineItems = session.line_items;
-    const collectedShippingAddress = session.shipping;
+
+    const lineItems = expandedSession.line_items;
+    const collectedShippingAddress = expandedSession.shipping;
+    const meta = expandedSession.metadata;
+
     const frontendProvidedShippingAddress = {
-      fullName: session.metadata.shipping_full_name,
-      phoneNumber: session.metadata.shipping_phone_number,
-      addressLine: session.metadata.shipping_address_line,
-      city: session.metadata.shipping_city,
-      state: session.metadata.shipping_state,
-      postalCode: session.metadata.shipping_postal_code,
-      country: session.metadata.shipping_country,
+      fullName: meta.shipping_full_name,
+      phoneNumber: meta.shipping_phone_number,
+      addressLine: meta.shipping_address_line,
+      city: meta.shipping_city,
+      state: meta.shipping_state,
+      postalCode: meta.shipping_postal_code,
+      country: meta.shipping_country,
     };
+
     const addressToStore = {
       fullName:
         collectedShippingAddress?.name ||
@@ -118,13 +122,13 @@ export const storeOrderAfterPayment = async (req, res) => {
     };
 
     const order = new Order({
-      orderId: uuidv4(), // <-- add this line
-      sessionId: session.id,
-      user: session.metadata.userId || null,
-      guestId: session.metadata.guestId || null,
-      isGuest: session.metadata.isGuest === "true",
-      email: session.customer_details.email,
-      totalAmount: session.amount_total / 100,
+      orderId: uuidv4(),
+      sessionId: sessionId,
+      user: meta.userId || null,
+      guestId: meta.guestId || null,
+      isGuest: meta.isGuest === "true",
+      email: expandedSession.customer_details.email,
+      totalAmount: expandedSession.amount_total / 100,
       items: lineItems.data.map((item) => ({
         name: item?.description,
         quantity: item.quantity,
@@ -135,7 +139,9 @@ export const storeOrderAfterPayment = async (req, res) => {
         image: item.price.product.images[0],
       })),
       shippingAddress: addressToStore,
+      status: "Processing",
     });
+
 
     await order.save();
 
@@ -149,7 +155,7 @@ export const storeOrderAfterPayment = async (req, res) => {
       guestId: order.guestId || null,
       email: order.email,
       amount: order.totalAmount,
-      paymentStatus: "paid",
+      paymentStatus: "Paid",
       paymentMethod: expandedSession.payment_method_types[0],
       gateway: "stripe",
       sessionId: order.sessionId,
