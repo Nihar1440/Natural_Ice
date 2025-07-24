@@ -26,8 +26,8 @@ export const createOrder = async (req, res) => {
       items,
       shippingAddress,
       totalAmount,
-      paymentStatus: "pending",
-      status: "pending",
+      paymentStatus: "Pending",
+      status: "Pending",
     });
 
     res.status(201).json({
@@ -194,25 +194,43 @@ export const deleteOrder = async (req, res) => {
   }
 };
 
-export const returnOrder = async (req, res) => {
+export const returnOrderRequest = async (req, res) => {
   try {
     const { id } = req.params;
+    const { reason, comment } = req.body;
+
+    if (!reason || !comment) {
+      return res.status(400).json({ message: 'Reason and comment are required' });
+    }
+
     const order = await Order.findById(id);
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    const orderPlacedTime = new Date(order.createdAt);
+    const orderDeliveredTime = new Date(order.deliveredAt);
     const currentTime = new Date();
     const twentyFourHours = 24 * 60 * 60 * 1000;
 
-    if (currentTime.getTime() - orderPlacedTime.getTime() <= twentyFourHours) {
-      
-      res.status(200).json({ message: 'Return request placed successfully. Refund process initiated.' });
-    } else {
-      res.status(400).json({ message: 'Unable to place return request. The 24-hour return window has passed.' });
+    if (currentTime.getTime() - orderDeliveredTime.getTime() > twentyFourHours) {
+      return res.status(400).json({ message: 'Unable to place return request. The 24-hour return window has passed.' });  
     }
+
+    order.returnRequest.isRequested = true;
+    order.returnRequest.reason = reason;
+    order.returnRequest.comment = comment;
+    order.returnRequest.status = "Requested";
+    order.returnRequest.requestedAt = new Date();
+
+    if (req.file) {
+      const imageUrl = req.file.path;
+      order.returnRequest.imageUrl = imageUrl;
+    }
+
+    await order.save();
+
+    res.status(200).json({ message: 'Return request placed successfully.', order });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

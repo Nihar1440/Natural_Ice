@@ -57,6 +57,28 @@ const orderSchema = new mongoose.Schema(
     },
     currentLocation: { type: String },
     estimatedDeliveryDate: { type: Date },
+    // Inside Order Schema
+
+    returnRequest: {
+      isRequested: { type: Boolean, default: false },
+      reason: String,
+      comment: String,
+      imageUrl: String,
+      pickUpAgent: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      status: {
+        type: String,
+        enum: ['Requested', 'Approved', 'Rejected', 'Picked', 'Refunded'],
+        default: 'Requested',
+      },
+      requestedAt: Date,
+      approvedAt: Date,
+      pickedAt: Date,
+      refundedAt: Date,
+    },
+
 
     deliveryAgent: {
       type: mongoose.Schema.Types.ObjectId,

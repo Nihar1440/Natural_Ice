@@ -27,4 +27,12 @@ const storageAvatar = new CloudinaryStorage({
   },
 });
 
-export { cloudinary, storage, storageAvatar };
+const storageReturnOrder = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'natural_ice/return-order',
+    allowed_formats: ['jpeg', 'png', 'jpg','webp'],
+  },
+});
+
+export { cloudinary, storage, storageAvatar, storageReturnOrder };
