@@ -118,6 +118,12 @@ export const registerDeliveryAgent = async (req, res) => {
       if(!order){
         return res.status(404).json({ success: false, message: "Order not found" });
       }
+      if(order.status === 'Delivered'){
+        return res.status(400).json({ success: false, message: "Order is already delivered" });
+      }
+      if(order.status === 'Cancelled'){
+        return res.status(400).json({ success: false, message: "Order is cancelled" });
+      }
 
       const deliveryAgent = await User.findOne({_id: deliveryAgentId, role: 'delivery'});
       if(!deliveryAgent){
