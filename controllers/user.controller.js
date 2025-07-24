@@ -239,8 +239,15 @@ export const refreshToken = async (req, res) => {
       { expiresIn: process.env.ACCESS_EXPIRES_IN || "30s" }
     );
 
-    // Return only access token; refresh token stays in cookie
-    res.json({ accessToken: newAccessToken });
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) return res.status(401).json({ message: "User not found" });
+
+    if (user.status === "Inactive") {
+      return res.status(401).json({ message: "User is Inactive" });
+    }
+
+    res.status(200).json({ accessToken: newAccessToken, user: user });
   } catch (err) {
     console.error("Refresh error:", err.message);
     return res.status(403).json({ message: "Invalid refresh token" });

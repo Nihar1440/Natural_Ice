@@ -143,6 +143,23 @@ export const storeOrderAfterPayment = async (req, res) => {
       await orderPlacedNotification(order.user, order._id);
     }
 
+    const payment = new Payment({
+      orderId: order._id,
+      userId: order.user || null,
+      guestId: order.guestId || null,
+      email: order.email,
+      amount: order.totalAmount,
+      paymentStatus: "paid",
+      paymentMethod: expandedSession.payment_method_types[0],
+      gateway: "stripe",
+      sessionId: order.sessionId,
+      receiptUrl: expandedSession.payment_intent?.charges?.data[0]?.receipt_url || null,
+      paymentTime: new Date(expandedSession.created * 1000),
+    });
+    
+    await payment.save();
+
+
     res.status(201).json({
       message: "Order saved successfully",
       orderId: order.orderId,
