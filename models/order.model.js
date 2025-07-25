@@ -1,4 +1,34 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
+
+export const ReturnRequestSchema = new Schema({
+  isRequested: { type: Boolean, required: true, default: false },
+  reason: { type: String, required: true },
+  comment: { type: String, required: true },
+  imageUrl: { type: String },
+  pickUpAgent: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  status: {
+    type: String,
+    enum: ['Requested', 'Approved', 'Rejected', 'Picked', 'Refunded', 'Cancelled'],
+    default: 'Requested',
+  },
+  stripeRefundId: { type: String },
+  refundAmount: { type: Number },
+  refundStatus: {
+    type: String,
+    enum: ['Pending', 'Initiated', 'Succeeded', 'Failed'],
+    default: 'Pending',
+  },
+
+  requestedAt: Date,
+  approvedAt: Date,
+  rejectedAt: Date,
+  pickedAt: Date,
+  refundedAt: Date,
+  cancelledAt: Date,
+});
 
 const orderSchema = new mongoose.Schema(
   {
@@ -57,28 +87,8 @@ const orderSchema = new mongoose.Schema(
     },
     currentLocation: { type: String },
     estimatedDeliveryDate: { type: Date },
-    // Inside Order Schema
 
-    returnRequest: {
-      isRequested: { type: Boolean, default: false },
-      reason: String,
-      comment: String,
-      imageUrl: String,
-      pickUpAgent: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-      },
-      status: {
-        type: String,
-        enum: ['Requested', 'Approved', 'Rejected', 'Picked', 'Refunded'],
-        default: 'Requested',
-      },
-      requestedAt: Date,
-      approvedAt: Date,
-      pickedAt: Date,
-      refundedAt: Date,
-    },
-
+    returnRequest: ReturnRequestSchema,
 
     deliveryAgent: {
       type: mongoose.Schema.Types.ObjectId,
