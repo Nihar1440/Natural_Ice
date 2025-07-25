@@ -94,7 +94,7 @@ export const getUserOrders = async (req, res) => {
   try {
     const { userId } = req.params;
     const orders = await Order.find({ user: userId }).populate('deliveryAgent', 'name email phoneNumber');
-    
+
     if (!orders || orders.length === 0) {
       return res.status(200).json({ message: 'No orders found for this user', orders: [] });
     }
@@ -104,7 +104,6 @@ export const getUserOrders = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 }
-
 
 
 
@@ -134,7 +133,7 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    if(status === order.status){
+    if (status === order.status) {
       return res.status(400).json({ message: 'Order already in this status' });
     }
 
@@ -194,6 +193,28 @@ export const deleteOrder = async (req, res) => {
   }
 };
 
+export const trackOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Return only tracking-related fields
+    res.status(200).json({
+      status: order.status,
+      currentLocation: order.currentLocation,
+      estimatedDeliveryDate: order.estimatedDeliveryDate,
+      trackingHistory: order.trackingHistory,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 export const returnOrderRequest = async (req, res) => {
   try {
     const { id } = req.params;
@@ -214,7 +235,7 @@ export const returnOrderRequest = async (req, res) => {
     const twentyFourHours = 24 * 60 * 60 * 1000;
 
     if (currentTime.getTime() - orderDeliveredTime.getTime() > twentyFourHours) {
-      return res.status(400).json({ message: 'Unable to place return request. The 24-hour return window has passed.' });  
+      return res.status(400).json({ message: 'Unable to place return request. The 24-hour return window has passed.' });
     }
 
     order.returnRequest.isRequested = true;
@@ -236,23 +257,105 @@ export const returnOrderRequest = async (req, res) => {
   }
 };
 
-export const trackOrder = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const order = await Order.findById(orderId);
 
+export const cancelReturnRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Return only tracking-related fields
-    res.status(200).json({
-      status: order.status,
-      currentLocation: order.currentLocation,
-      estimatedDeliveryDate: order.estimatedDeliveryDate,
-      trackingHistory: order.trackingHistory,
-    });
+    if(!order.returnRequest.isRequested) {
+      return res.status(400).json({ message: 'No return request found for this order.' });
+    }
+
+    if(order.returnRequest.status === 'Picked' || order.returnRequest.status === 'Refunded') {
+      return res.status(400).json({ message: 'Return request cannot be cancelled after it has been picked or refunded.' });
+    }
+
+    if(order.returnRequest.status === 'Cancelled') {
+      return res.status(400).json({ message: 'Return request is already cancelled.' });
+    }
+
+    order.returnRequest.status = 'Cancelled';
+    order.returnRequest.cancelledAt = new Date();
+    await order.save();
+
+    res.status(200).json({ message: 'Return request cancelled successfully', order });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
+}
+
+export const getAllReturnRequestOrders = async (req, res) => {
+  const { status } = req.query;
+
+  let filter = {
+    "returnRequest.isRequested": true,
+  };
+  
+  if (status) {
+    filter["returnRequest.status"] = new RegExp(`^${status}$`, 'i');
+  }
+
+  try {
+    const returnRequest = await Order.find(filter)
+    .populate('user', 'name email phoneNumber')
+    .populate('returnRequest.pickUpAgent', '_id name email phoneNumber');
+
+    if (!returnRequest || returnRequest.length === 0) {
+      return res.status(200).json({ message: 'No return requests found', returnRequest: [] });
+    }
+
+    res.status(200).json({ returnRequest });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+
+export const updateReturnRequestStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const order = await Order.findById(id);
+
+    if (!order) { 
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if(!order.returnRequest.isRequested) {
+      return res.status(400).json({ message: 'No return request found for this order.' });
+    }
+
+    if(status === 'Approved') {
+      order.returnRequest.status = 'Approved';
+      order.returnRequest.approvedAt = new Date();
+    } else if(status === 'Rejected') {
+      order.returnRequest.status = 'Rejected';
+      order.returnRequest.rejectedAt = new Date();
+    }else if(status === 'Picked') {
+      order.returnRequest.status = 'Picked';
+      order.returnRequest.pickedAt = new Date();
+      order.status = 'Returned';
+    }else if(status === 'Refunded') {
+      order.returnRequest.status = 'Refunded';
+      order.returnRequest.refundedAt = new Date();
+      order.status = 'Returned';
+    }else if(status === 'Cancelled') {
+      order.returnRequest.status = 'Cancelled';
+      order.returnRequest.cancelledAt = new Date();
+    }else{
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    await order.save();
+    res.status(200).json({ message: 'Return request status updated successfully', order });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}

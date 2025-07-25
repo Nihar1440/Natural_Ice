@@ -4,7 +4,8 @@ const paymentSchema = new Schema({
     orderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Order',
-        required: true
+        required: true,
+        unique: true,
     },
     userId: { 
         type: mongoose.Schema.Types.ObjectId, 
@@ -26,9 +27,11 @@ const paymentSchema = new Schema({
     sessionId: { type: String },
 
     receiptUrl: { type: String },
+    refundId: { type: String },
     refundedAmount: { type: Number, default: 0 },
 
-    paymentTime: { type: Date }, 
+    paymentTime: { type: Date },
+    refundTime: { type: Date },
 }, { timestamps: true });
 
 export const Payment = mongoose.model('Payment', paymentSchema);
