@@ -21,6 +21,7 @@ export const ReturnRequestSchema = new Schema({
     enum: ['Pending', 'Initiated', 'Succeeded', 'Failed'],
     default: 'Pending',
   },
+  refundFailureReason: { type: String },
 
   requestedAt: Date,
   approvedAt: Date,
