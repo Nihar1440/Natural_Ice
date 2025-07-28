@@ -49,7 +49,7 @@ export const createCheckoutSession = async (req, res) => {
         guestId: guestId || "",
         isGuest: isGuest.toString(),
         // Store the frontend-provided shipping address in metadata, now matching frontend's flat structure
-        shipping_full_name: shippingAddress?.fullName || "", 
+        shipping_full_name: shippingAddress?.fullName || "",
         shipping_phone_number: shippingAddress?.phoneNumber || "",
         shipping_address_line: shippingAddress?.addressLine || "",
         shipping_address_line2: shippingAddress?.addressLine2 || "",
@@ -162,7 +162,7 @@ export const storeOrderAfterPayment = async (req, res) => {
       receiptUrl: expandedSession.payment_intent?.charges?.data[0]?.receipt_url || null,
       paymentTime: new Date(expandedSession.created * 1000),
     });
-    
+
     await payment.save();
 
 
@@ -193,7 +193,7 @@ export const stripeWebhookHandler = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
- 
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
@@ -271,7 +271,7 @@ export const stripeWebhookHandler = async (req, res) => {
         receiptUrl: expandedSession.payment_intent?.charges?.data[0]?.receipt_url || null,
         paymentTime: new Date(expandedSession.created * 1000),
       });
-      
+
       await payment.save();
 
       return res.status(200).send("Order stored successfully");
@@ -281,6 +281,120 @@ export const stripeWebhookHandler = async (req, res) => {
     }
   }
 
+  if (event.type === "charge.refunded") {
+    const charge = event.data.object;
+    const refund = charge.refunds.data[0];
+    const orderId = charge.metadata?.orderId;
+
+
+    try {
+      const order = await Order.findById(orderId);
+      if (!order) {
+        return res.status(404).send("Order not found");
+      }
+
+      if (refund.status !== "succeeded") {
+        return res.status(200).send("Refund failed");
+      }
+
+      if (order.returnRequest.refundStatus === "Succeeded") {
+        return res.status(200).send("Refund already processed");
+      }
+
+      order.returnRequest.stripeRefundId = refund.id;
+      order.returnRequest.refundAmount = refund.amount;
+      order.returnRequest.refundStatus = 'Succeeded';
+      order.returnRequest.status = 'Refunded';
+      order.returnRequest.refundedAt = new Date();
+
+      await order.save();
+
+      const payment = await Payment.findOne({ orderId: order._id });
+      if (payment) {
+        payment.paymentStatus = 'Refunded';
+        payment.refundTime = new Date();
+        payment.refundId = refund.id;
+        payment.refundedAmount = refund.amount;
+        await payment.save();
+      }
+
+      console.log(`Refund succeeded for charge ${charge.id}`);
+      return res.status(200).send("Refund processed successfully");
+    } catch (error) {
+      console.error("Error processing refund:", error);
+      return res.status(500).send("Refund processing failed");
+    }
+  }
+
+  if (event.type === "charge.failed") {
+    const charge = event.data.object;
+    const refund = charge.refunds.data[0];
+    const orderId = charge.metadata?.orderId;
+    try {
+      const order = await Order.findById(orderId);
+      if (!order) {
+        return res.status(404).send("Order not found");
+      }
+
+      if (refund.status !== "failed") {
+        return res.status(200).send("Refund failed");
+      }
+
+      order.returnRequest.refundStatus = 'Failed';
+      order.returnRequest.refundFailureReason = refund.failure_reason;
+      await order.save();
+
+      return res.status(200).send("Refund failed");
+    } catch (error) {
+      console.error("Error processing refund:", error);
+      return res.status(500).send("Refund processing failed");
+    }
+  };
+
 
   res.status(200).send("Event received");
+}
+ 
+
+export const initiateRefund = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order || !order.sessionId) {
+      return res.status(404).json({ message: 'Order or session not found' });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(order.sessionId);
+
+    if (!session.payment_intent) {
+      return res.status(400).json({ message: 'No payment intent found in session' });
+    }
+
+    if (order.returnRequest.refundStatus === 'Initiated') {
+      return res.status(200).json({ message: 'Refund already initiated' });
+    }
+
+    if (order.returnRequest.refundStatus === 'Succeeded') {
+      return res.status(200).json({ message: 'Refund already processed' });
+    }
+
+    const refund = await stripe.refunds.create({
+      payment_intent: session.payment_intent,
+      metadata: {
+        orderId: order._id.toString(),
+      }
+    });
+
+    order.returnRequest.refundStatus = 'Initiated';
+    order.returnRequest.refundAmount = refund.amount;
+    order.returnRequest.stripeRefundId = refund.id;
+
+    await order.save();
+
+    res.status(200).json({ message: 'Refund initiated', refund });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Refund failed', error: error.message });
+  }
 };
