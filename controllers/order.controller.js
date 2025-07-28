@@ -238,6 +238,11 @@ export const returnOrderRequest = async (req, res) => {
       return res.status(400).json({ message: 'Unable to place return request. The 24-hour return window has passed.' });
     }
 
+    // Initialize returnRequest object if it doesn't exist
+    if (!order.returnRequest) {
+      order.returnRequest = {};
+    }
+
     order.returnRequest.isRequested = true;
     order.returnRequest.reason = reason;
     order.returnRequest.comment = comment;
