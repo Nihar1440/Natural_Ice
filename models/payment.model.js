@@ -27,6 +27,10 @@ const paymentSchema = new Schema({
     sessionId: { type: String },
 
     receiptUrl: { type: String },
+    returnOrderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ReturnOrder',
+    },
     refundId: { type: String },
     refundedAmount: { type: Number, default: 0 },
 

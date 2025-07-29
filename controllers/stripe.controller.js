@@ -4,6 +4,7 @@ import { Order } from "../models/order.model.js";
 import { v4 as uuidv4 } from 'uuid';
 import { orderPlacedNotification } from "../utils/notification.js";
 import { Payment } from "../models/payment.model.js";
+import { ReturnOrder } from "../models/returnOrder.model.js";
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -284,37 +285,38 @@ export const stripeWebhookHandler = async (req, res) => {
   if (event.type === "charge.refunded") {
     const charge = event.data.object;
     const refund = charge.refunds.data[0];
-    const orderId = charge.metadata?.orderId;
+    const returnOrderId = charge.metadata?.returnOrderId;
 
 
     try {
-      const order = await Order.findById(orderId);
-      if (!order) {
-        return res.status(404).send("Order not found");
+      const returnOrder = await ReturnOrder.findById(returnOrderId);
+      if (!returnOrder) {
+        return res.status(404).send("return order not found");
       }
 
       if (refund.status !== "succeeded") {
         return res.status(200).send("Refund failed");
       }
 
-      if (order.returnRequest.refundStatus === "Succeeded") {
+      if (returnOrder.refundStatus === "Succeeded") {
         return res.status(200).send("Refund already processed");
       }
 
-      order.returnRequest.stripeRefundId = refund.id;
-      order.returnRequest.refundAmount = refund.amount;
-      order.returnRequest.refundStatus = 'Succeeded';
-      order.returnRequest.status = 'Refunded';
-      order.returnRequest.refundedAt = new Date();
+      returnOrder.stripeRefundId = refund.id;
+      returnOrder.refundAmount = refund.amount;
+      returnOrder.refundStatus = 'Succeeded';
+      returnOrder.status = 'Refunded';
+      returnOrder.refundedAt = new Date();
 
-      await order.save();
+      await returnOrder.save();
 
-      const payment = await Payment.findOne({ orderId: order._id });
+      const payment = await Payment.findOne({ orderId: returnOrder.orderId });
       if (payment) {
         payment.paymentStatus = 'Refunded';
         payment.refundTime = new Date();
         payment.refundId = refund.id;
         payment.refundedAmount = refund.amount;
+        payment.returnOrderId = returnOrder._id;
         await payment.save();
       }
 
@@ -329,20 +331,20 @@ export const stripeWebhookHandler = async (req, res) => {
   if (event.type === "charge.failed") {
     const charge = event.data.object;
     const refund = charge.refunds.data[0];
-    const orderId = charge.metadata?.orderId;
+    const returnOrderId = charge.metadata?.returnOrderId;
     try {
-      const order = await Order.findById(orderId);
-      if (!order) {
-        return res.status(404).send("Order not found");
+      const returnOrder = await ReturnOrder.findById(returnOrderId);
+      if (!returnOrder) {
+        return res.status(404).send("return order not found");
       }
 
       if (refund.status !== "failed") {
         return res.status(200).send("Refund failed");
       }
 
-      order.returnRequest.refundStatus = 'Failed';
-      order.returnRequest.refundFailureReason = refund.failure_reason;
-      await order.save();
+      returnOrder.refundStatus = 'Failed';
+      returnOrder.refundFailureReason = refund.failure_reason;
+      await returnOrder.save();
 
       return res.status(200).send("Refund failed");
     } catch (error) {
@@ -358,39 +360,40 @@ export const stripeWebhookHandler = async (req, res) => {
 
 export const initiateRefund = async (req, res) => {
   try {
-    const { orderId } = req.body;
+    const { returnOrderId } = req.body;
 
-    const order = await Order.findById(orderId);
-    if (!order || !order.sessionId) {
-      return res.status(404).json({ message: 'Order or session not found' });
+    const returnOrder = await ReturnOrder.findById(returnOrderId).populate('orderId');
+    if (!returnOrder) {
+      return res.status(404).json({ message: 'return order not found' });
     }
 
-    const session = await stripe.checkout.sessions.retrieve(order.sessionId);
+    const session = await stripe.checkout.sessions.retrieve(returnOrder.orderId.sessionId);
 
     if (!session.payment_intent) {
       return res.status(400).json({ message: 'No payment intent found in session' });
     }
 
-    if (order.returnRequest.refundStatus === 'Initiated') {
+    if (returnOrder.refundStatus === 'Initiated') {
       return res.status(200).json({ message: 'Refund already initiated' });
     }
 
-    if (order.returnRequest.refundStatus === 'Succeeded') {
+    if (returnOrder.refundStatus === 'Succeeded') {
       return res.status(200).json({ message: 'Refund already processed' });
     }
 
     const refund = await stripe.refunds.create({
       payment_intent: session.payment_intent,
+      amount: returnOrder.refundAmount,
       metadata: {
-        orderId: order._id.toString(),
+        returnOrderId: returnOrder._id.toString(),
       }
     });
 
-    order.returnRequest.refundStatus = 'Initiated';
-    order.returnRequest.refundAmount = refund.amount;
-    order.returnRequest.stripeRefundId = refund.id;
+    returnOrder.refundStatus = 'Initiated';
+    returnOrder.refundAmount = refund.amount;
+    returnOrder.stripeRefundId = refund.id;
 
-    await order.save();
+    await returnOrder.save();
 
     res.status(200).json({ message: 'Refund initiated', refund });
   } catch (error) {
