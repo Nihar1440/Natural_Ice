@@ -4,8 +4,9 @@ import { ReturnOrder } from "../models/returnOrder.model.js";
 export const returnOrderRequest = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { reason, comment, products } = req.body;
-
+        const { reason, comment, items } = req.body;
+        const products = JSON.parse(items);
+    
         if (!reason || !comment || !products || products.length === 0) {
             return res.status(400).json({ message: 'Reason, comment, and products are required' });
         }
@@ -25,7 +26,7 @@ export const returnOrderRequest = async (req, res) => {
 
         for (const product of products) {
             const item = order.items.find(i => i.productId.toString() === product.productId);
-
+          
             if (!item) continue;
 
             const alreadyReturned = item.returnedQuantity || 0;
@@ -82,6 +83,7 @@ export const returnOrderRequest = async (req, res) => {
         await order.save(); 
 
         res.status(200).json({
+            success: true,
             message: 'Return request placed successfully.',
             returnOrder
         });
@@ -167,13 +169,13 @@ export const updateReturnRequestStatus = async (req, res) => {
         if (status === 'Approved') {
             returnOrder.status = 'Approved';
             returnOrder.approvedAt = new Date();
+            order.status = 'Returned';
         } else if (status === 'Rejected') {
             returnOrder.status = 'Rejected';
             returnOrder.rejectedAt = new Date();
         } else if (status === 'Picked') {
             returnOrder.status = 'Picked';
             returnOrder.pickedAt = new Date();
-            order.status = 'Returned';
         } else if (status === 'Refunded') {
             returnOrder.status = 'Refunded';
             returnOrder.refundedAt = new Date();
