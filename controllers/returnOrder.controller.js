@@ -181,10 +181,6 @@ export const updateReturnRequestStatus = async (req, res) => {
             return res.status(404).json({ message: 'order not found' });
         }
 
-        if (returnOrder.status !== 'Requested') {
-            return res.status(400).json({ message: 'No return request found for this order.' });
-        }
-
         if (status === 'Approved') {
             returnOrder.status = 'Approved';
             returnOrder.approvedAt = new Date();
