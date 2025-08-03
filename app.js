@@ -1,24 +1,24 @@
 import express from "express"
-import productRoutes from "../routes/product.route.js"
-import categoryRoutes from "../routes/category.route.js"
-import productlistRoutes from "../routes/productlist.route.js"
-import cartRoutes from "../routes/cart.route.js"
-import userRoutes from "../routes/user.route.js"
-import emailRoutes from "../routes/email.route.js"
-import chatRoutes from "../routes/chat.route.js"
-import paymentRoutes from "../routes/payment.route.js"
-import receiptRoutes from "../routes/receipt.route.js"
-import orderRoutes from "../routes/order.route.js"
-import deliveryRoutes from "../routes/delivery.route.js"
+import productRoutes from "./routes/product.route.js"
+import categoryRoutes from "./routes/category.route.js"
+import productlistRoutes from "./routes/productlist.route.js"
+import cartRoutes from "./routes/cart.route.js"
+import userRoutes from "./routes/user.route.js"
+import emailRoutes from "./routes/email.route.js"
+import chatRoutes from "./routes/chat.route.js"
+import paymentRoutes from "./routes/payment.route.js"
+import receiptRoutes from "./routes/receipt.route.js"
+import orderRoutes from "./routes/order.route.js"
+import deliveryRoutes from "./routes/delivery.route.js"
 
-import wishListRoutes from "../routes/wishList.route.js"
-import shippingAddressRoutes from "../routes/shippingAddressRoutes.js"
+import wishListRoutes from "./routes/wishList.route.js"
+import shippingAddressRoutes from "./routes/shippingAddressRoutes.js"
 
 import cors from "cors"
 import cookieParser from "cookie-parser";
-import { stripeWebhookHandler } from "../controllers/stripe.controller.js"
-import { protect } from "../middlewares/authmiddleware.js"
-import notificationRoutes from "../routes/notification.route.js";
+import { stripeWebhookHandler } from "./controllers/stripe.controller.js"
+import { protect } from "./middlewares/authmiddleware.js"
+import notificationRoutes from "./routes/notification.route.js";
 
 const app = express()
 

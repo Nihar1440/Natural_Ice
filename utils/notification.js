@@ -1,4 +1,4 @@
-import { io, userSocketMap } from "../src/server.js";
+import { io, userSocketMap } from "../server.js";
 import { Notification } from "../models/notification.model.js";
 import { Order } from "../models/order.model.js";
 
