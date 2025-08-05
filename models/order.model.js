@@ -61,6 +61,12 @@ const orderSchema = new mongoose.Schema(
     },
     currentLocation: { type: String },
     estimatedDeliveryDate: { type: Date },
+    refundStatus: {
+      type: String,
+      enum: ['Pending', 'Initiated', 'Succeeded', 'Failed'],
+      default: 'Pending',
+    },
+    refundFailureReason: { type: String },
 
     deliveryAgent: {
       type: mongoose.Schema.Types.ObjectId,
@@ -69,6 +75,8 @@ const orderSchema = new mongoose.Schema(
     deliveryNotes: { type: String },
     shippedAt: { type: Date },
     deliveredAt: { type: Date },
+    cancelledAt: { type: Date },
+    refundedAt: { type: Date },
 
     trackingHistory: [
       {

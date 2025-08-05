@@ -190,7 +190,9 @@ export const cancelOrder = async (req, res) => {
     }
 
     order.status = "Cancelled";
+    order.createdAt = new Date();
     await order.save();
+
 
     if (order.user) {
       await orderUpdatedNotification(order.user, order._id, "Cancelled");
@@ -201,6 +203,23 @@ export const cancelOrder = async (req, res) => {
     res.status(500).json({ message: error.message || "Error in Cancelling Order."});
   }
   
+}
+
+export const getCancelledOrders = async (req, res) => {
+  try {
+    const cancelledOrders = await Order.find({ 
+      status: "Cancelled", 
+      refundStatus: "Pending" 
+    }).populate('user', 'name email phoneNumber');
+
+    if (!cancelledOrders || cancelledOrders.length === 0) {
+      return res.status(200).json({ message: 'No cancelled orders found', cancelledOrders: [] });
+    }
+
+    res.status(200).json({ cancelledOrders }); // createdAt, shippedAt, deliveredAt will be included
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 }
 
 
