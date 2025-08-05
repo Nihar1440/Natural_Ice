@@ -273,7 +273,7 @@ export const getRecentOrders = async (req, res) => {
   }
 };
 
-// ✅ Get total revenue for Admin Dashboard
+
 export const getTotalRevenue = async (req, res) => {
   try {
     const deliveredOrders = await Order.find({ status: 'Delivered' });
@@ -289,7 +289,7 @@ export const getTotalRevenue = async (req, res) => {
   }
 };
 
-// ✅ Get sales overview for Admin Dashboard
+
 export const getSalesOverview = async (req, res) => {
   try {
     const salesData = [];
