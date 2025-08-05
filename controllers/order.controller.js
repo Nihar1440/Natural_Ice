@@ -1,3 +1,4 @@
+import moment from "moment";
 import { Order } from "../models/order.model.js";
 import { orderUpdatedNotification } from "../utils/notification.js";
 
@@ -254,5 +255,65 @@ export const trackOrder = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Get recent orders for Admin Dashboard
+export const getRecentOrders = async (req, res) => {
+  try {
+    const recentOrders = await Order.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("user", "name email") // optional: include user info
+      .select("orderId status totalAmount createdAt");
+
+    res.status(200).json({ success: true, orders: recentOrders });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ✅ Get total revenue for Admin Dashboard
+export const getTotalRevenue = async (req, res) => {
+  try {
+    const deliveredOrders = await Order.find({ status: 'Delivered' });
+
+    const totalRevenue = deliveredOrders.reduce(
+      (sum, order) => sum + (order.totalAmount || 0),
+      0
+    );
+
+    res.status(200).json({ totalRevenue });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching revenue', error });
+  }
+};
+
+// ✅ Get sales overview for Admin Dashboard
+export const getSalesOverview = async (req, res) => {
+  try {
+    const salesData = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const start = moment().subtract(i, 'months').startOf('month').toDate();
+      const end = moment().subtract(i, 'months').endOf('month').toDate();
+      const label = moment(start).format('MMM YYYY');
+
+      const orders = await Order.find({
+        status: 'Delivered',
+        createdAt: { $gte: start, $lte: end },
+      });
+
+      const totalSales = orders.reduce(
+        (sum, order) => sum + (order.totalAmount || 0),
+        0
+      );
+
+      salesData.push({ label, totalSales });
+    }
+
+    res.status(200).json(salesData);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching sales overview', error });
   }
 };
