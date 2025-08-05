@@ -1,6 +1,6 @@
 import express from 'express';
 import { isAdmin, protect } from '../middlewares/authmiddleware.js';
-import { createOrder, getOrder, updateOrder, deleteOrder, getOrderById, trackOrder, getUserOrders, updateOrderStatus } from '../controllers/order.controller.js';
+import { createOrder, getOrder, updateOrder, deleteOrder, getOrderById, trackOrder, getUserOrders, updateOrderStatus, cancelOrder } from '../controllers/order.controller.js';
 import { uploadReturnOrderImage } from '../middlewares/upload.js';
 import { cancelReturnRequest, getAllReturnRequestOrders, getUserReturnRequest, returnOrderRequest, updateReturnRequestStatus } from '../controllers/returnOrder.controller.js';
 
@@ -12,6 +12,7 @@ router.get('/user-orders/:userId', protect, getUserOrders);
 router.get('/orders/:id', getOrderById);
 router.put('/orders/:id', updateOrder);
 router.patch('/update-status/:id', updateOrderStatus);
+router.patch('/orders/:orderId/cancel', cancelOrder)
 router.delete('/orders/:id', deleteOrder);
 router.get('/orders/track/:orderId', trackOrder);
 

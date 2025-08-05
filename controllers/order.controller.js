@@ -110,12 +110,11 @@ export const getUserOrders = async (req, res) => {
 export const updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const io = req.app.get('socketio');
+
     const updatedOrder = await Order.findByIdAndUpdate(id, req.body, { new: true });
     if (!updatedOrder) {
       return res.status(404).json({ message: 'Order not found' });
     }
-    io.to(id).emit('orderStatusUpdate', updatedOrder)
     res.status(200).json({ message: 'Order updated successfully', order: updatedOrder });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -159,12 +158,6 @@ export const updateOrderStatus = async (req, res) => {
     order.status = status;
     await order.save();
 
-    // Optional: Send socket event if using real-time tracking
-    const io = req.app.get('socketio');
-    if (io) {
-      io.to(order._id.toString()).emit('orderStatusUpdate', order);
-    }
-
     // Optional: Notify registered user
     if (order.user) {
       await orderUpdatedNotification(order.user, order._id, status);
@@ -178,6 +171,37 @@ export const updateOrderStatus = async (req, res) => {
 };
 
 
+export const cancelOrder = async (req, res) => {
+  const id = req.params.orderId;
+
+  try {
+    const order = await Order.findById(id);
+
+    if(!order){
+      return res.status(404).json({ message: "Order not found"})
+    }
+
+    if(order.status === "Cancelled"){
+      return res.status(201).json({ message: "Order already Cancelled"})
+    }
+
+    if(order.status === "Shipped" || order.status === "Delivered" || order.status === "Returned"){
+      return res.status(400).json({ message: `Order cannot be Cancelled after it has been ${order.status}.` });
+    }
+
+    order.status = "Cancelled";
+    await order.save();
+
+    if (order.user) {
+      await orderUpdatedNotification(order.user, order._id, "Cancelled");
+    }
+
+    res.status(200).json({ message: 'Order cancelled successfully', order });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Error in Cancelling Order."});
+  }
+  
+}
 
 
 export const deleteOrder = async (req, res) => {
