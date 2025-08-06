@@ -2,6 +2,7 @@ import express from "express"
 import productRoutes from "./routes/product.route.js"
 import categoryRoutes from "./routes/category.route.js"
 import productlistRoutes from "./routes/productlist.route.js"
+import productReviewRoutes from "./routes/productReview.route.js"
 import cartRoutes from "./routes/cart.route.js"
 import userRoutes from "./routes/user.route.js"
 import emailRoutes from "./routes/email.route.js"
@@ -35,6 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // Route prefix
 app.use('/api/product', productRoutes);
+app.use('/api/review', productReviewRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/user', userRoutes)
 app.use('/api/productlist', productlistRoutes)
