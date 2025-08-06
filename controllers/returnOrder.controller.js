@@ -89,7 +89,7 @@ export const returnOrderRequest = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+       return res.status(500).json({ message: error.message });
     }
 };
 
@@ -118,7 +118,7 @@ export const cancelReturnRequest = async (req, res) => {
 
         res.status(200).json({ message: 'Return request cancelled successfully', returnOrder });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: error.message });
     }
 }
 
@@ -135,7 +135,7 @@ export const getUserReturnRequest = async (req, res) => {
         res.status(200).json({ returnRequests });
 
     } catch (error) {
-        res.status(500).json({ message: error.message || 'Internal server error' });
+        return res.status(500).json({ message: error.message || 'Internal server error' });
     }
 }
 
@@ -160,7 +160,7 @@ export const getAllReturnRequestOrders = async (req, res) => {
 
         res.status(200).json({ returnRequest });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: error.message });
     }
 }
 
@@ -206,6 +206,6 @@ export const updateReturnRequestStatus = async (req, res) => {
         res.status(200).json({ message: 'Return request status updated successfully', returnOrder });
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: error.message });
     }
 }
