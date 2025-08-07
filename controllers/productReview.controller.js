@@ -53,6 +53,14 @@ export const createReview = async (req, res) => {
         }
 
         await review.save();
+
+        const productReviews = await ProductReview.find({ productId: product._id });
+        const totalReviews = productReviews.length;
+        const averageRating = productReviews.reduce((acc, review) => acc + review.rating, 0) / totalReviews || 0;
+
+        product.ratings = averageRating.toFixed(1);
+        product.numReviews = totalReviews;
+        await product.save();
         return res.status(201).json({ message: "Review created successfully", review });
     } catch (error) {
         console.error("Error in Creating Review: ", error.message)
@@ -120,6 +128,17 @@ export const updateReview = async (req, res) => {
         }
 
         await review.save();
+
+
+        const productReviews = await ProductReview.find({ productId: review.productId });
+        const totalReviews = productReviews.length;
+        const averageRating = productReviews.reduce((acc, review) => acc + review.rating, 0) / totalReviews || 0;
+
+        await Product.findByIdAndUpdate(review.productId, {
+            ratings: averageRating.toFixed(1),
+            numReviews: totalReviews
+        });
+
         return res.status(200).json({ message: "Review updated successfully", review });
     } catch (error) {
         console.error("Error in Updating Review: ", error.message);
@@ -140,6 +159,16 @@ export const deleteReview = async (req, res) => {
         }
 
         await review.deleteOne();
+
+        const productReviews = await ProductReview.find({ productId: review.productId });
+        const totalReviews = productReviews.length;
+        const averageRating = productReviews.reduce((acc, review) => acc + review.rating, 0) / totalReviews || 0;
+
+        await Product.findByIdAndUpdate(review.productId, {
+            ratings: averageRating.toFixed(1),
+            numReviews: totalReviews
+        });
+
         return res.status(200).json({ message: "Review deleted successfully" });
     } catch (error) {
         console.error("Error in Deleting Review: ", error.message);
