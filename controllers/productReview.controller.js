@@ -18,15 +18,16 @@ export const createReview = async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: "User not found" });
         }
+
+         const hasReviewed = await ProductReview.findOne({ productId, userId });
+        if (hasReviewed) {
+            return res.status(400).json({ message: "You have already reviewed this product." });
+        }
+        
         const intRating = parseInt(rating);
 
         if (!intRating || intRating < 1 || intRating > 5) {
             return res.status(400).json({ message: "Rating must be between 1 and 5" });
-        }
-
-        const hasReviewed = await ProductReview.findOne({ productId, userId });
-        if (hasReviewed) {
-            return res.status(400).json({ message: "You have already reviewed this product." });
         }
 
         const hasPurchased = await Order.findOne({
@@ -62,15 +63,28 @@ export const createReview = async (req, res) => {
 
 export const getReviewsByProductId = async (req, res) => {
     const { productId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
 
     try {
-        const reviews = await ProductReview.find({ productId }).populate('userId', 'name email');
-
-        if (!reviews || reviews.length === 0) {
+        const totalItems = await ProductReview.countDocuments({ productId });
+        if (totalItems === 0) {
             return res.status(404).json({ message: "No reviews found for this product." });
         }
+        const reviews = await ProductReview.find({ productId })
+            .populate('userId', 'name email')
+            .skip(skip)
+            .limit(limit);
 
-        return res.status(200).json({ reviews });
+        return res.status(200).json({
+            page,
+            limit,
+            totalPages: Math.ceil(totalItems / limit),
+            totalItems,
+            reviews
+        });
     } catch (error) {
         console.error("Error in Fetching Reviews: ", error.message);
         return res.status(500).json({ message: error.message || "Internal Server Error!" });

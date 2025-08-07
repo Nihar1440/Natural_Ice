@@ -125,14 +125,25 @@ export const cancelReturnRequest = async (req, res) => {
 export const getUserReturnRequest = async (req, res) => {
     try {
         const { userId } = req.params;
+        const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const totalItems = await ReturnOrder.countDocuments({ user: userId });
+        if (totalItems === 0) {
+            return res.status(404).json({ message: 'No return requests found for this user', returnRequests: [] });
+        }
 
         const returnRequests = await ReturnOrder.find({ user: userId });
 
-        if (!returnRequests || returnRequests.length === 0) {
-            return res.status(200).json({ message: 'No return requests found', returnRequests: [] });
-        }
 
-        res.status(200).json({ returnRequests });
+        res.status(200).json({
+            page,
+            limit,
+            totalPages: Math.ceil(totalItems / limit),
+            totalItems,
+            returnRequests
+        });
 
     } catch (error) {
         return res.status(500).json({ message: error.message || 'Internal server error' });
@@ -141,6 +152,10 @@ export const getUserReturnRequest = async (req, res) => {
 
 export const getAllReturnRequestOrders = async (req, res) => {
     const { status } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
 
     let filter = {};
 
@@ -149,16 +164,25 @@ export const getAllReturnRequestOrders = async (req, res) => {
     }
 
     try {
+
+        const totalItems = await ReturnOrder.countDocuments(filter);
+        if (totalItems === 0) {
+            return res.status(404).json({ message: 'No return requests found', returnRequest: [] });
+        }
         const returnRequest = await ReturnOrder.find(filter)
             .populate('user', '_id name email phoneNumber')
             .populate('orderId', '_id orderId totalAmount status items deliveredAt')
-            .populate('pickUpAgent', '_id name email phoneNumber');
+            .populate('pickUpAgent', '_id name email phoneNumber')
+            .skip(skip)
+            .limit(limit);
 
-        if (!returnRequest || returnRequest.length === 0) {
-            return res.status(200).json({ message: 'No return requests found', returnRequest: [] });
-        }
-
-        res.status(200).json({ returnRequest });
+        res.status(200).json({
+            page,
+            limit,
+            totalPages: Math.ceil(totalItems / limit),
+            totalItems,
+            returnRequest
+        });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
