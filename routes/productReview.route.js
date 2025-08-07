@@ -5,7 +5,7 @@ import { protect } from '../middlewares/authmiddleware.js';
 
 const router = express.Router();
 
-router.post('/', protect, uploadProductReview.fields([{ name: 'images', maxCount: 5 }]), createReview);
+router.post('/create', protect, uploadProductReview.fields([{ name: 'images', maxCount: 5 }]), createReview);
 router.put('/:reviewId', protect, uploadProductReview.fields([{ name: 'images', maxCount: 5 }]), updateReview);
 
 router.get('/:productId', getReviewsByProductId);
