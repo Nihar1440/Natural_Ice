@@ -58,6 +58,10 @@ export const getOrderById = async (req, res) => {
 export const getOrder = async (req, res) => {
   try {
     const { name, status, date } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const filter = {};
 
     // Filter by status
@@ -74,7 +78,11 @@ export const getOrder = async (req, res) => {
     }
 
     // Always use find + populate
-    let orders = await Order.find(filter).populate('user', 'name email phoneNumber');
+    const totalItems = await Order.countDocuments(filter);
+    if (totalItems === 0) {
+      return res.status(200).json({ message: "No orders found" });
+    }
+    let orders = await Order.find(filter).populate('user', 'name email phoneNumber').skip(skip).limit(limit);
 
     // If name filter is provided, filter in-memory after population
     if (name) {
@@ -84,7 +92,13 @@ export const getOrder = async (req, res) => {
       );
     }
 
-    res.status(200).json(orders);
+    res.status(200).json({
+      page,
+      limit,
+      totalPages: Math.ceil(totalItems / limit),
+      totalItems,
+      orders
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -94,13 +108,23 @@ export const getOrder = async (req, res) => {
 export const getUserOrders = async (req, res) => {
   try {
     const { userId } = req.params;
-    const orders = await Order.find({ user: userId }).populate('deliveryAgent', 'name email phoneNumber');
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    if (!orders || orders.length === 0) {
-      return res.status(200).json({ message: 'No orders found for this user', orders: [] });
+    const totalItems = await Order.countDocuments({ user: userId });
+    if (totalItems === 0) {
+      return res.status(404).json({ message: 'No orders found for this user', orders: [] });
     }
+    const orders = await Order.find({ user: userId }).populate('deliveryAgent', 'name email phoneNumber').skip(skip).limit(limit);
 
-    res.status(200).json({ orders }); // createdAt, shippedAt, deliveredAt will be included
+    res.status(200).json({
+      page,
+      limit,
+      totalPages: Math.ceil(totalItems / limit),
+      totalItems,
+      orders
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -208,16 +232,27 @@ export const cancelOrder = async (req, res) => {
 
 export const getCancelledOrders = async (req, res) => {
   try {
-    const cancelledOrders = await Order.find({ 
-      status: "Cancelled", 
-      refundStatus: "Pending" 
-    }).populate('user', 'name email phoneNumber');
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    if (!cancelledOrders || cancelledOrders.length === 0) {
-      return res.status(200).json({ message: 'No cancelled orders found', cancelledOrders: [] });
+    const totalItems = await Order.countDocuments({ status: "Cancelled", refundStatus: "Pending" });
+    if (totalItems === 0) {
+      return res.status(404).json({ message: 'No cancelled orders found', cancelledOrders: [] });
     }
 
-    res.status(200).json({ cancelledOrders }); // createdAt, shippedAt, deliveredAt will be included
+    const cancelledOrders = await Order.find({
+      status: "Cancelled",
+      refundStatus: "Pending"
+    }).populate('user', 'name email phoneNumber').skip(skip).limit(limit);
+
+    res.status(200).json({
+      page,
+      limit,
+      totalPages: Math.ceil(totalItems / limit),
+      totalItems,
+      cancelledOrders
+    }); // createdAt, shippedAt, deliveredAt will be included
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

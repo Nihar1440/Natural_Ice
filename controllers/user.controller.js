@@ -251,18 +251,33 @@ export const refreshToken = async (req, res) => {
 };
 
 export const getAllUsers = async (req, res) => {
+  const { name } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
   try {
-    const { name } = req.query;
+
     const filter = { role: "user" };
     if (name) {
       filter.name = { $regex: name, $options: "i" };
     }
+
+    const totalItems = await User.countDocuments(filter);
+    if (totalItems === 0) {
+      return res.status(404).json({ message: "No users found" });
+    }
     const users = await User.find(filter)
       .select("-password -refreshtoken")
+      .skip(skip)
+      .limit(limit)
       .lean();
     res.status(200).json({
+      page,
+      limit,
+      totalPages: Math.ceil(totalItems / limit),
+      totalItems,
       success: true,
-      message: users.length ? "Users fetched successfully" : "No users found",
+      message: "Users fetched successfully",
       data: users,
     });
   } catch (error) {
