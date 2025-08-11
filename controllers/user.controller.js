@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { createTransport } from "nodemailer";
 import { cloudinary } from "../utils/cloudinary.js";
+import { Order } from "../models/order.model.js";
+import { Payment } from "../models/payment.model.js";
 
 //create user
 export const register = async (req, res) => {
@@ -20,6 +22,28 @@ export const register = async (req, res) => {
     const user = new User({ name, email, password, address });
     const savedUser = await user.save();
     const { password: _, ...response } = savedUser.toObject();
+
+    await Order.updateMany(
+      {
+        email: savedUser.email,
+        $or: [
+          { user: { $exists: false } },
+          { user: null }
+        ]
+      },
+      { $set: { user: savedUser._id } }
+    );
+
+    await Payment.updateMany(
+      {
+        email: savedUser.email,
+        $or: [
+          { user: { $exists: false } },
+          { user: null }
+        ]
+      },
+      { $set: { userId: savedUser._id } }
+    );
 
     res
       .status(201)
@@ -353,7 +377,7 @@ export const setStatusActive = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "User not found" });
 
-    if(user.role !== 'user'){
+    if (user.role !== 'user') {
       return res.status(200).json({ message: "Unauthorized" });
     }
 

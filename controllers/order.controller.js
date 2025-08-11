@@ -1,17 +1,16 @@
 import moment from "moment";
 import { Order } from "../models/order.model.js";
 import { orderUpdatedNotification } from "../utils/notification.js";
+import { User } from "../models/user.model.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const {
+    let {
       userId,
-      guestId,
       email,
       items,
       shippingAddress,
       totalAmount,
-      isGuest = false,
     } = req.body;
 
 
@@ -19,10 +18,13 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Missing required order fields" });
     }
 
+    if(!userId) {
+      const user = await User.findOne({ email });
+      userId = user?._id || null;
+    }
+
     const order = await Order.create({
-      userId,
-      guestId: isGuest ? guestId : null,
-      isGuest,
+      user: userId,
       email,
       items,
       shippingAddress,
