@@ -11,7 +11,6 @@ const paymentSchema = new Schema({
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User' 
     },
-    guestId: { type: String },
     email: { type: String, required: true },
 
     amount: { type: Number, required: true },

@@ -5,18 +5,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { orderPlacedNotification } from "../utils/notification.js";
 import { Payment } from "../models/payment.model.js";
 import { ReturnOrder } from "../models/returnOrder.model.js";
+import { User } from "../models/user.model.js";
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const createCheckoutSession = async (req, res) => {
   const {
     userId,
-    guestId,
     email,
     items,
     shippingAddress,
     totalAmount,
-    isGuest = false
   } = req.body;
 
 
@@ -47,8 +46,6 @@ export const createCheckoutSession = async (req, res) => {
       })),
       metadata: {
         userId: userId || "",
-        guestId: guestId || "",
-        isGuest: isGuest.toString(),
         // Store the frontend-provided shipping address in metadata, now matching frontend's flat structure
         shipping_full_name: shippingAddress?.fullName || "",
         shipping_phone_number: shippingAddress?.phoneNumber || "",
@@ -121,13 +118,16 @@ export const storeOrderAfterPayment = async (req, res) => {
         collectedShippingAddress?.address?.country ||
         frontendProvidedShippingAddress.country,
     };
+    let userId = meta.userId || null;
+    if(!meta.userId) {
+      const user = await User.findOne({ email: expandedSession.customer_details.email });
+      userId = user?._id || null;
+    }
 
     const order = new Order({
       orderId: uuidv4(),
       sessionId: sessionId,
-      user: meta.userId || null,
-      guestId: meta.guestId || null,
-      isGuest: meta.isGuest === "true",
+      user: userId,
       email: expandedSession.customer_details.email,
       totalAmount: expandedSession.amount_total / 100,
       items: lineItems.data.map((item) => ({
@@ -153,7 +153,6 @@ export const storeOrderAfterPayment = async (req, res) => {
     const payment = new Payment({
       orderId: order._id,
       userId: order.user || null,
-      guestId: order.guestId || null,
       email: order.email,
       amount: order.totalAmount,
       paymentStatus: "Paid",
@@ -232,13 +231,16 @@ export const stripeWebhookHandler = async (req, res) => {
         postalCode: collectedShippingAddress?.address?.postal_code || frontendProvidedShippingAddress.postalCode,
         country: collectedShippingAddress?.address?.country || frontendProvidedShippingAddress.country,
       };
+      let userId = meta.userId || null;
+      if (!meta.userId) {
+        const user = await User.findOne({ email: expandedSession.customer_details.email });
+        userId = user?._id || null;
+      }
 
       const order = new Order({
         orderId: uuidv4(),
         sessionId: session.id,
-        user: meta.userId || null,
-        guestId: meta.guestId || null,
-        isGuest: meta.isGuest === "true",
+        user: userId,
         email: expandedSession.customer_details.email,
         totalAmount: expandedSession.amount_total / 100,
         items: lineItems.data.map((item) => ({
@@ -262,7 +264,6 @@ export const stripeWebhookHandler = async (req, res) => {
       const payment = new Payment({
         orderId: order._id,
         userId: order.user || null,
-        guestId: order.guestId || null,
         email: order.email,
         amount: order.totalAmount,
         paymentStatus: "Paid",
