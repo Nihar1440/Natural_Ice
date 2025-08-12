@@ -30,7 +30,8 @@ export const getAllPayments = async (req, res) => {
         .limit(limit)
         .populate('userId', 'name email')
         .populate('orderId', '_id orderId items totalAmount status')
-        .populate('returnOrderId', '_id orderId items totalAmount status refundStatus');
+        .populate('returnOrderId', '_id orderId items totalAmount status refundStatus')
+        .sort({ createdAt: -1 });
 
         if(payments.length === 0){
             return res.status(404).json({ message: 'No payments found' });
@@ -56,7 +57,8 @@ export const getPaymentDetailsByEmail = async (req, res) => {
         const payments = await Payment.find({ email })
         .populate('userId', 'name email')
         .populate('orderId', '_id orderId items totalAmount status')
-        .populate('returnOrderId', '_id orderId items totalAmount status refundStatus');
+        .populate('returnOrderId', '_id orderId items totalAmount status refundStatus')
+        .sort({ createdAt: -1 });
 
         if(payments.length === 0){
             return res.status(404).json({ message: 'No payments found' });
@@ -85,8 +87,8 @@ export const getUserPayments = async (req, res) => {
         .limit(limit)
         .populate('userId', 'name email')
         .populate('orderId', '_id orderId items totalAmount status')
-        .populate('returnOrderId', '_id orderId items totalAmount status refundStatus');
-        
+        .populate('returnOrderId', '_id orderId items totalAmount status refundStatus')
+        .sort({ createdAt: -1 });
 
         res.status(200).json({
             page,

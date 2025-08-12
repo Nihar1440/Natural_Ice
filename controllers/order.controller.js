@@ -18,7 +18,7 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Missing required order fields" });
     }
 
-    if(!userId) {
+    if (!userId) {
       const user = await User.findOne({ email });
       userId = user?._id || null;
     }
@@ -84,7 +84,7 @@ export const getOrder = async (req, res) => {
     if (totalItems === 0) {
       return res.status(200).json({ message: "No orders found" });
     }
-    let orders = await Order.find(filter).populate('user', 'name email phoneNumber').skip(skip).limit(limit);
+    let orders = await Order.find(filter).populate('user', 'name email phoneNumber').skip(skip).limit(limit).sort({ createdAt: -1 });
 
     // If name filter is provided, filter in-memory after population
     if (name) {
@@ -118,7 +118,7 @@ export const getUserOrders = async (req, res) => {
     if (totalItems === 0) {
       return res.status(404).json({ message: 'No orders found for this user', orders: [] });
     }
-    const orders = await Order.find({ user: userId }).populate('deliveryAgent', 'name email phoneNumber').skip(skip).limit(limit);
+    const orders = await Order.find({ user: userId }).populate('deliveryAgent', 'name email phoneNumber').skip(skip).limit(limit).sort({ createdAt: -1 });
 
     res.status(200).json({
       page,
@@ -204,15 +204,15 @@ export const cancelOrder = async (req, res) => {
   try {
     const order = await Order.findById(id);
 
-    if(!order){
-      return res.status(404).json({ message: "Order not found"})
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" })
     }
 
-    if(order.status === "Cancelled"){
-      return res.status(201).json({ message: "Order already Cancelled"})
+    if (order.status === "Cancelled") {
+      return res.status(201).json({ message: "Order already Cancelled" })
     }
 
-    if(order.status === "Shipped" || order.status === "Delivered" || order.status === "Returned"){
+    if (order.status === "Shipped" || order.status === "Delivered" || order.status === "Returned") {
       return res.status(400).json({ message: `Order cannot be Cancelled after it has been ${order.status}.` });
     }
 
@@ -227,26 +227,52 @@ export const cancelOrder = async (req, res) => {
 
     res.status(200).json({ message: 'Order cancelled successfully', order });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Error in Cancelling Order."});
+    res.status(500).json({ message: error.message || "Error in Cancelling Order." });
   }
-  
+
 }
 
 export const getCancelledOrders = async (req, res) => {
   try {
+    const { email, refundStatus, date } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const totalItems = await Order.countDocuments({ status: "Cancelled", refundStatus: "Pending" });
+    const filter = {
+      status: "Cancelled"
+    };
+
+    if (refundStatus) {
+      if (['Pending', 'Initiated', 'Succeeded', 'Failed'].includes(refundStatus)) {
+        filter.refundStatus = refundStatus;
+      }
+    } else {
+      filter.refundStatus = "Pending";
+    }
+
+    if (date) {
+      const start = new Date(date);
+      const end = new Date(date);
+      end.setDate(end.getDate() + 1);
+      filter.cancelledAt = { $gte: start, $lt: end };
+    }
+
+    if (email) {
+      filter.email = { $regex: email, $options: 'i' };
+    }
+
+    const totalItems = await Order.countDocuments(filter);
     if (totalItems === 0) {
       return res.status(404).json({ message: 'No cancelled orders found', cancelledOrders: [] });
     }
 
-    const cancelledOrders = await Order.find({
-      status: "Cancelled",
-      refundStatus: "Pending"
-    }).populate('user', 'name email phoneNumber').skip(skip).limit(limit);
+    const cancelledOrders = await Order.find(filter)
+      .populate('user', 'name email phoneNumber')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
 
     res.status(200).json({
       page,
@@ -254,7 +280,7 @@ export const getCancelledOrders = async (req, res) => {
       totalPages: Math.ceil(totalItems / limit),
       totalItems,
       cancelledOrders
-    }); // createdAt, shippedAt, deliveredAt will be included
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
