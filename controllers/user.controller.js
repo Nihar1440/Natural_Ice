@@ -275,7 +275,7 @@ export const refreshToken = async (req, res) => {
 };
 
 export const getAllUsers = async (req, res) => {
-  const { name } = req.query;
+  const { name, status } = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -286,6 +286,10 @@ export const getAllUsers = async (req, res) => {
       filter.name = { $regex: name, $options: "i" };
     }
 
+    if (status) {
+      filter.status = status;
+    }
+
     const totalItems = await User.countDocuments(filter);
     if (totalItems === 0) {
       return res.status(404).json({ message: "No users found" });
@@ -294,6 +298,7 @@ export const getAllUsers = async (req, res) => {
       .select("-password -refreshtoken")
       .skip(skip)
       .limit(limit)
+      .sort({ createdAt: -1 })
       .lean();
     res.status(200).json({
       page,

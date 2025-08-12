@@ -151,7 +151,7 @@ export const getUserReturnRequest = async (req, res) => {
 }
 
 export const getAllReturnRequestOrders = async (req, res) => {
-    const { status } = req.query;
+    const { status, date } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -161,6 +161,13 @@ export const getAllReturnRequestOrders = async (req, res) => {
 
     if (status) {
         filter["status"] = new RegExp(`^${status}$`, 'i');
+    }
+
+     if (date) {
+      const start = new Date(date);
+      const end = new Date(date);
+      end.setDate(end.getDate() + 1);
+      filter.requestedAt = { $gte: start, $lt: end };
     }
 
     try {
@@ -174,7 +181,8 @@ export const getAllReturnRequestOrders = async (req, res) => {
             .populate('orderId', '_id orderId totalAmount status items deliveredAt')
             .populate('pickUpAgent', '_id name email phoneNumber')
             .skip(skip)
-            .limit(limit);
+            .limit(limit)
+            .sort({ createdAt: -1 });
 
         res.status(200).json({
             page,
